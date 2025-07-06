@@ -319,8 +319,8 @@ const WeatherApp = () => {
       <div className="container">
         {/* Header */}
         <header className="header">
-          <h1 className="app-title">🌤️ {t('appTitle')}</h1>
-          <p className="app-subtitle">{t('appSubtitle')}</p>
+          <h1 className="app-title">🌤️ BhoomiWeather</h1>
+          <p className="app-subtitle">Real-time Weather Information</p>
           
           <div className="language-selector">
               <select 

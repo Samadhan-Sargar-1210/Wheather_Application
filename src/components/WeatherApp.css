@@ -181,18 +181,17 @@ body {
   text-align: center;
   margin-bottom: 30px;
   padding: 20px 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .app-title {
   font-size: 3rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
   margin-bottom: 10px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  color: #fff; /* Fallback color for browsers that don't support gradient text */
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
   display: block;
   position: relative;
   z-index: 2;
@@ -205,6 +204,7 @@ body {
   margin-bottom: 20px;
   position: relative;
   z-index: 2;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
 /* Search Section */
