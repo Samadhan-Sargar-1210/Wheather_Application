@@ -2,8 +2,8 @@
 // Get your free API key from: https://openweathermap.org/api
 
 export const WEATHER_API_CONFIG = {
-  // Replace this with your actual OpenWeatherMap API key
-  API_KEY: import.meta.env.VITE_OPENWEATHERMAP_API_KEY || 'YOUR_OPENWEATHERMAP_API_KEY',
+  // Real OpenWeatherMap API key for live weather data
+  API_KEY: '5492382f8d23faf84ae5b0e65269b5ea',
   BASE_URL: 'https://api.openweathermap.org/data/2.5',
   UNITS: 'metric', // metric, imperial, kelvin
   LANGUAGE: 'en' // en, hi, mr, ta
