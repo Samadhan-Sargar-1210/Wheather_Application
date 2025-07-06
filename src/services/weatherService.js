@@ -1,10 +1,10 @@
-// Weather API Service
+// Weather API Service for Tomorrow.io
 import { API_KEY, API_BASE_URL } from '../config/weatherApi.js'
 
 const API_ENDPOINTS = {
-  CURRENT_WEATHER: '/weather',
-  FORECAST: '/forecast',
-  GEOCODING: '/geo/1.0/direct'
+  CURRENT_WEATHER: '/weather/realtime',
+  FORECAST: '/weather/forecast',
+  GEOCODING: '/geocoding/v1/search'
 }
 
 // Enhanced API request function with better error handling
@@ -12,23 +12,23 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   try {
     // Add API key and units to all requests
     const queryParams = new URLSearchParams({
-      appid: API_KEY,
+      apikey: API_KEY,
       units: 'metric',
       ...params
     })
 
     const url = `${API_BASE_URL}${endpoint}?${queryParams}`
-    console.log('Making API request to:', url)
+    console.log('Making Tomorrow.io API request to:', url)
 
     const response = await fetch(url)
     console.log('API Response status:', response.status)
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('API Error Response:', errorText)
+      console.error('Tomorrow.io API Error Response:', errorText)
       
       if (response.status === 404) {
-        throw new Error('404: City not found')
+        throw new Error('404: Location not found')
       } else if (response.status === 401) {
         throw new Error('401: Invalid API key')
       } else if (response.status === 429) {
@@ -39,7 +39,7 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
     }
 
     const data = await response.json()
-    console.log('API Response data:', data)
+    console.log('Tomorrow.io API Response data:', data)
     
     // Validate the response
     if (!data || typeof data !== 'object') {
@@ -48,7 +48,7 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
     
     return data
   } catch (error) {
-    console.error('API Request failed:', error)
+    console.error('Tomorrow.io API Request failed:', error)
     
     // If it's a network error, provide a helpful message
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -60,39 +60,39 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   }
 }
 
-// Enhanced geocoding function with better village support
+// Enhanced geocoding function for Tomorrow.io
 export const getCoordinates = async (cityName) => {
   try {
     console.log('Getting coordinates for:', cityName)
     
     // First try with the exact name
     let data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
-      q: cityName,
+      query: cityName,
       limit: 5
     })
     
     console.log('Geocoding response:', data)
     
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!data.results || data.results.length === 0) {
       // If no results, try with country code for better matching
       console.log('No results found, trying with country code...')
       data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
-        q: `${cityName},IN`, // Add India as default country
+        query: `${cityName}, India`,
         limit: 5
       })
     }
     
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!data.results || data.results.length === 0) {
       // Try with different country codes
       const countries = ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'JP', 'CN']
       for (const country of countries) {
         try {
           console.log(`Trying with country code: ${country}`)
           data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
-            q: `${cityName},${country}`,
+            query: `${cityName}, ${country}`,
             limit: 3
           })
-          if (Array.isArray(data) && data.length > 0) {
+          if (data.results && data.results.length > 0) {
             console.log(`Found results with country ${country}:`, data)
             break
           }
@@ -103,17 +103,17 @@ export const getCoordinates = async (cityName) => {
       }
     }
     
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!data.results || data.results.length === 0) {
       throw new Error(`No coordinates found for "${cityName}". Try searching for a nearby larger city.`)
     }
     
     // Return the best match (usually the first one)
-    const location = data[0]
+    const location = data.results[0]
     console.log('Selected location:', location)
     
     return {
-      lat: location.lat,
-      lon: location.lon,
+      lat: location.location.lat,
+      lon: location.location.lng,
       name: location.name,
       country: location.country,
       state: location.state,
@@ -125,70 +125,95 @@ export const getCoordinates = async (cityName) => {
   }
 }
 
-// Enhanced weather condition mapping
-export const getWeatherCondition = (main, description = '') => {
+// Enhanced weather condition mapping for Tomorrow.io
+export const getWeatherCondition = (weatherCode) => {
   const conditions = {
-    'Clear': 'clear',
-    'Clouds': description.toLowerCase().includes('scattered') ? 'partly-cloudy' : 'cloudy',
-    'Rain': description.toLowerCase().includes('light') ? 'light-rain' : 'rain',
-    'Drizzle': 'light-rain',
-    'Thunderstorm': 'thunderstorm',
-    'Snow': 'snow',
-    'Mist': 'fog',
-    'Smoke': 'fog',
-    'Haze': 'fog',
-    'Dust': 'fog',
-    'Fog': 'fog',
-    'Sand': 'fog',
-    'Ash': 'fog',
-    'Squall': 'windy',
-    'Tornado': 'thunderstorm'
+    1000: 'Clear',
+    1001: 'Cloudy',
+    1100: 'Mostly Clear',
+    1101: 'Partly Cloudy',
+    1102: 'Mostly Cloudy',
+    2000: 'Fog',
+    2100: 'Light Fog',
+    4000: 'Drizzle',
+    4001: 'Rain',
+    4200: 'Light Rain',
+    4201: 'Heavy Rain',
+    5000: 'Snow',
+    5001: 'Flurries',
+    5100: 'Light Snow',
+    5101: 'Heavy Snow',
+    6000: 'Freezing Drizzle',
+    6001: 'Freezing Rain',
+    6200: 'Light Freezing Rain',
+    6201: 'Heavy Freezing Rain',
+    7000: 'Ice Pellets',
+    7101: 'Heavy Ice Pellets',
+    7102: 'Light Ice Pellets',
+    8000: 'Thunderstorm'
   }
   
-  return conditions[main] || 'clear'
+  return conditions[weatherCode] || 'Partly Cloudy'
 }
 
 // Enhanced weather icon mapping
 export const getWeatherIcon = (condition) => {
   const icons = {
-    'clear': '☀️',
-    'partly-cloudy': '⛅',
-    'cloudy': '☁️',
-    'light-rain': '🌦️',
-    'rain': '🌧️',
-    'thunderstorm': '⛈️',
-    'snow': '❄️',
-    'fog': '🌫️',
-    'windy': '💨'
+    'Clear': '☀️',
+    'Partly Cloudy': '⛅',
+    'Mostly Clear': '🌤️',
+    'Mostly Cloudy': '☁️',
+    'Cloudy': '☁️',
+    'Fog': '🌫️',
+    'Light Fog': '🌫️',
+    'Drizzle': '🌦️',
+    'Rain': '🌧️',
+    'Light Rain': '🌦️',
+    'Heavy Rain': '🌧️',
+    'Snow': '❄️',
+    'Flurries': '🌨️',
+    'Light Snow': '🌨️',
+    'Heavy Snow': '❄️',
+    'Freezing Drizzle': '🌨️',
+    'Freezing Rain': '🌨️',
+    'Light Freezing Rain': '🌨️',
+    'Heavy Freezing Rain': '🌨️',
+    'Ice Pellets': '🧊',
+    'Heavy Ice Pellets': '🧊',
+    'Light Ice Pellets': '🧊',
+    'Thunderstorm': '⛈️'
   }
   
-  return icons[condition] || '☀️'
+  return icons[condition] || '🌤️'
 }
 
-// Enhanced forecast data fetching
+// Enhanced forecast data fetching for Tomorrow.io
 export const fetchForecastData = async (lat, lon) => {
   try {
     console.log('Fetching forecast for coordinates:', lat, lon)
-    const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { lat, lon })
+    const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { 
+      location: `${lat},${lon}`,
+      timesteps: '1d',
+      fields: 'temperature,weatherCode,humidity,windSpeed,precipitationProbability'
+    })
     
-    if (!data.list || !Array.isArray(data.list)) {
+    if (!data.data || !data.data.timelines || !data.data.timelines[0]) {
       throw new Error('Invalid forecast data received')
     }
     
     // Process forecast data
-    const forecast = data.list
-      .filter((item, index) => index % 8 === 0) // Get one reading per day
-      .slice(0, 5) // Get 5 days
-      .map(item => ({
-        date: new Date(item.dt * 1000).toLocaleDateString('en-US', { 
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        }),
-        temp: Math.round(item.main.temp),
-        condition: getWeatherCondition(item.weather[0].main, item.weather[0].description),
-        icon: getWeatherIcon(getWeatherCondition(item.weather[0].main, item.weather[0].description)),
-        description: item.weather[0].description
+    const forecast = data.data.timelines[0].intervals
+      .slice(0, 7) // Get 7 days
+      .map(interval => ({
+        date: new Date(interval.startTime),
+        temp: Math.round(interval.values.temperature),
+        tempMin: Math.round(interval.values.temperature),
+        tempMax: Math.round(interval.values.temperature),
+        condition: getWeatherCondition(interval.values.weatherCode),
+        humidity: Math.round(interval.values.humidity),
+        windSpeed: Math.round(interval.values.windSpeed * 3.6), // Convert m/s to km/h
+        rainChance: Math.round(interval.values.precipitationProbability * 100),
+        icon: getWeatherIcon(getWeatherCondition(interval.values.weatherCode))
       }))
     
     console.log('Processed forecast data:', forecast)
@@ -211,7 +236,16 @@ export const generateMockAQI = () => {
     value: aqiValue,
     level: randomLevel,
     color: randomLevel === 'Good' ? '#00E400' : 
-           randomLevel === 'Moderate' ? '#FFFF00' : '#FF7E00'
+           randomLevel === 'Moderate' ? '#FFFF00' : '#FF7E00',
+    pollutants: {
+      pm25: Math.floor(Math.random() * 50) + 5,
+      pm10: Math.floor(Math.random() * 100) + 10,
+      no2: Math.floor(Math.random() * 40) + 5,
+      o3: Math.floor(Math.random() * 60) + 10
+    },
+    healthAdvice: randomLevel === 'Good' ? 'Air quality is good. Enjoy outdoor activities.' :
+                  randomLevel === 'Moderate' ? 'Air quality is acceptable. Sensitive individuals may experience symptoms.' :
+                  'Air quality is moderate. Limit outdoor activities.'
   }
 }
 
@@ -228,67 +262,62 @@ export const generateMockAlerts = () => {
   if (Math.random() > 0.7) {
     const randomAlert = possibleAlerts[Math.floor(Math.random() * possibleAlerts.length)]
     return [{
-      type: randomAlert,
+      id: Date.now(),
+      title: randomAlert,
       severity: 'Moderate',
-      description: `Weather conditions may be hazardous. Please take necessary precautions.`
+      description: `Weather conditions may be hazardous. Please take necessary precautions.`,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
     }]
   }
   
   return []
 }
 
-// Main weather fetching function with enhanced village support
+// Main weather fetching function for Tomorrow.io
 export const getCurrentWeather = async (city) => {
   try {
     console.log('Getting current weather for:', city)
     
-    // First try direct weather API call
+    // First try direct weather API call with coordinates
     let data
     try {
-      data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
-    } catch (directError) {
-      console.log('Direct weather API failed, trying geocoding...')
-      
-      // If direct call fails, try geocoding first
+      // Get coordinates first
       const coords = await getCoordinates(city)
       console.log('Got coordinates:', coords)
       
       // Use coordinates to get weather
       data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { 
-        lat: coords.lat, 
-        lon: coords.lon 
+        location: `${coords.lat},${coords.lon}`,
+        fields: 'temperature,temperatureApparent,humidity,windSpeed,pressureSeaLevel,visibility,uvIndex,weatherCode,cloudCover,precipitationProbability'
       })
       
-      // Update city name to the resolved location
-      data.name = coords.fullName || coords.name
+      // Update location name to the resolved location
+      data.location = coords.fullName || coords.name
+    } catch (directError) {
+      console.log('Direct weather API failed:', directError)
+      throw directError
     }
     
-    if (!data || !data.main || !data.weather || !data.weather[0]) {
+    if (!data.data || !data.data.values) {
       throw new Error('Invalid weather data received')
     }
     
+    const values = data.data.values
+    
     return {
-      city: data.name,
-      temperature: Math.round(data.main.temp),
-      feelsLike: Math.round(data.main.feels_like),
-      condition: getWeatherCondition(data.weather[0].main, data.weather[0].description),
-      humidity: data.main.humidity,
-      windSpeed: Math.round((data.wind?.speed || 0) * 3.6), // Convert m/s to km/h
-      pressure: data.main.pressure,
-      visibility: Math.round((data.visibility || 10000) / 1000), // Convert m to km
-      uvIndex: 5, // OpenWeatherMap doesn't provide UV in free tier
-      sunrise: data.sys?.sunrise ? new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      }) : '06:30 AM',
-      sunset: data.sys?.sunset ? new Date(data.sys.sunset * 1000).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      }) : '06:45 PM',
-      description: data.weather[0].description,
-      icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description)),
+      city: data.location || city,
+      temperature: Math.round(values.temperature),
+      feelsLike: Math.round(values.temperatureApparent),
+      condition: getWeatherCondition(values.weatherCode),
+      humidity: Math.round(values.humidity),
+      windSpeed: Math.round(values.windSpeed * 3.6), // Convert m/s to km/h
+      pressure: Math.round(values.pressureSeaLevel),
+      visibility: Math.round(values.visibility), // Already in km
+      uvIndex: values.uvIndex,
+      sunrise: '06:30 AM', // Tomorrow.io doesn't provide sunrise/sunset in free tier
+      sunset: '06:45 PM',
+      description: getWeatherCondition(values.weatherCode),
+      icon: getWeatherIcon(getWeatherCondition(values.weatherCode)),
       isDemo: false
     }
   } catch (error) {

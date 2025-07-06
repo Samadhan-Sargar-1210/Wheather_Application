@@ -1,49 +1,73 @@
-// Weather API Configuration
-// Get your free API key from: https://openweathermap.org/api
+// Tomorrow.io Weather API Configuration
+// Get your free API key from: https://www.tomorrow.io/weather-api/
 
 export const WEATHER_API_CONFIG = {
-  // Real OpenWeatherMap API key for live weather data
-  API_KEY: '5492382f8d23faf84ae5b0e65269b5ea',
-  BASE_URL: 'https://api.openweathermap.org/data/2.5',
-  UNITS: 'metric', // metric, imperial, kelvin
+  // Tomorrow.io API key for live weather data
+  API_KEY: 'EHm9pdsGjbqpY1wbUN1SegZ1P5BJdhXZ',
+  BASE_URL: 'https://api.tomorrow.io/v4',
+  UNITS: 'metric', // metric, imperial
   LANGUAGE: 'en' // en, hi, mr, ta
 }
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  CURRENT_WEATHER: '/weather',
-  FORECAST: '/forecast',
-  AIR_POLLUTION: '/air_pollution' // Requires paid plan
+  CURRENT_WEATHER: '/weather/realtime',
+  FORECAST: '/weather/forecast',
+  GEOCODING: '/geocoding/v1/search'
 }
 
-// Weather condition mappings
+// Weather condition mappings for Tomorrow.io weather codes
 export const WEATHER_CONDITIONS = {
-  'Clear': 'Sunny',
-  'Clouds': 'Partly Cloudy',
-  'Rain': 'Rainy',
-  'Snow': 'Snowy',
-  'Thunderstorm': 'Stormy',
-  'Drizzle': 'Rainy',
-  'Mist': 'Foggy',
-  'Fog': 'Foggy',
-  'Haze': 'Foggy',
-  'Smoke': 'Foggy',
-  'Dust': 'Foggy',
-  'Sand': 'Foggy',
-  'Ash': 'Foggy',
-  'Squall': 'Stormy',
-  'Tornado': 'Stormy'
+  1000: 'Clear',
+  1001: 'Cloudy',
+  1100: 'Mostly Clear',
+  1101: 'Partly Cloudy',
+  1102: 'Mostly Cloudy',
+  2000: 'Fog',
+  2100: 'Light Fog',
+  4000: 'Drizzle',
+  4001: 'Rain',
+  4200: 'Light Rain',
+  4201: 'Heavy Rain',
+  5000: 'Snow',
+  5001: 'Flurries',
+  5100: 'Light Snow',
+  5101: 'Heavy Snow',
+  6000: 'Freezing Drizzle',
+  6001: 'Freezing Rain',
+  6200: 'Light Freezing Rain',
+  6201: 'Heavy Freezing Rain',
+  7000: 'Ice Pellets',
+  7101: 'Heavy Ice Pellets',
+  7102: 'Light Ice Pellets',
+  8000: 'Thunderstorm'
 }
 
 // Weather icons mapping
 export const WEATHER_ICONS = {
-  'Sunny': '☀️',
+  'Clear': '☀️',
   'Partly Cloudy': '⛅',
+  'Mostly Clear': '🌤️',
+  'Mostly Cloudy': '☁️',
   'Cloudy': '☁️',
-  'Rainy': '🌧️',
-  'Snowy': '❄️',
-  'Stormy': '⛈️',
-  'Foggy': '🌫️'
+  'Fog': '🌫️',
+  'Light Fog': '🌫️',
+  'Drizzle': '🌦️',
+  'Rain': '🌧️',
+  'Light Rain': '🌦️',
+  'Heavy Rain': '🌧️',
+  'Snow': '❄️',
+  'Flurries': '🌨️',
+  'Light Snow': '🌨️',
+  'Heavy Snow': '❄️',
+  'Freezing Drizzle': '🌨️',
+  'Freezing Rain': '🌨️',
+  'Light Freezing Rain': '🌨️',
+  'Heavy Freezing Rain': '🌨️',
+  'Ice Pellets': '🧊',
+  'Heavy Ice Pellets': '🧊',
+  'Light Ice Pellets': '🧊',
+  'Thunderstorm': '⛈️'
 }
 
 // AQI levels and colors
@@ -65,11 +89,8 @@ export const AQI_HEALTH_ADVICE = {
 }
 
 // Helper functions
-export const getWeatherCondition = (main, description) => {
-  if (main === 'Clouds') {
-    return description.includes('few') || description.includes('scattered') ? 'Partly Cloudy' : 'Cloudy'
-  }
-  return WEATHER_CONDITIONS[main] || 'Partly Cloudy'
+export const getWeatherCondition = (weatherCode) => {
+  return WEATHER_CONDITIONS[weatherCode] || 'Partly Cloudy'
 }
 
 export const getWeatherIcon = (condition) => {
@@ -103,15 +124,14 @@ export const getHealthAdvice = (aqi) => {
   return AQI_HEALTH_ADVICE.HAZARDOUS
 }
 
-// API request helper
+// API request helper for Tomorrow.io
 export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   const url = new URL(`${WEATHER_API_CONFIG.BASE_URL}${endpoint}`)
   
   // Add default parameters
   const defaultParams = {
-    appid: WEATHER_API_CONFIG.API_KEY,
+    apikey: WEATHER_API_CONFIG.API_KEY,
     units: WEATHER_API_CONFIG.UNITS,
-    lang: WEATHER_API_CONFIG.LANGUAGE,
     ...params
   }
   
@@ -120,17 +140,17 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
     url.searchParams.append(key, value)
   })
   
-  console.log('Making API request to:', url.toString())
+  console.log('Making Tomorrow.io API request to:', url.toString())
   
   const response = await fetch(url.toString())
   
   if (!response.ok) {
     const errorText = await response.text()
-    console.error('API Error Response:', errorText)
-    throw new Error(`Weather API error: ${response.status} ${response.statusText}`)
+    console.error('Tomorrow.io API Error Response:', errorText)
+    throw new Error(`Tomorrow.io API error: ${response.status} ${response.statusText}`)
   }
   
   const data = await response.json()
-  console.log('API Success Response:', data)
+  console.log('Tomorrow.io API Success Response:', data)
   return data
 } 

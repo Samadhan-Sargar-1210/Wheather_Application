@@ -94,7 +94,7 @@ const WeatherApp = () => {
 
   // Test function to verify API is working
   const testAPI = useCallback(async () => {
-    console.log('Testing API with different cities...')
+    console.log('Testing Tomorrow.io API with different cities...')
     console.log('API Key available:', !!WEATHER_API_CONFIG.API_KEY)
     console.log('API Base URL:', WEATHER_API_CONFIG.API_BASE_URL)
     
@@ -103,8 +103,30 @@ const WeatherApp = () => {
     for (const city of cities) {
       try {
         console.log(`Testing ${city}...`)
-        const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
-        console.log(`${city}: ${Math.round(data.main.temp)}°C - ${data.weather[0].description}`)
+        // Test with coordinates for major cities
+        let coords
+        switch(city) {
+          case 'London':
+            coords = { lat: 51.5074, lon: -0.1278 }
+            break
+          case 'Mumbai':
+            coords = { lat: 19.0760, lon: 72.8777 }
+            break
+          case 'New York':
+            coords = { lat: 40.7128, lon: -74.0060 }
+            break
+          case 'Tokyo':
+            coords = { lat: 35.6762, lon: 139.6503 }
+            break
+          default:
+            continue
+        }
+        
+        const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, {
+          location: `${coords.lat},${coords.lon}`,
+          fields: 'temperature,weatherCode'
+        })
+        console.log(`${city}: ${Math.round(data.data.values.temperature)}°C - ${getWeatherCondition(data.data.values.weatherCode)}`)
       } catch (err) {
         console.error(`Error fetching ${city}:`, err.message)
       }
@@ -127,45 +149,44 @@ const WeatherApp = () => {
     try {
       let params = {}
       if (lat && lon) {
-        params = { lat, lon }
+        params = { location: `${lat},${lon}` }
         console.log('Fetching weather by coordinates:', lat, lon)
       } else {
-        params = { q: cityName }
         console.log('Fetching weather for city/village:', cityName)
       }
 
       console.log('API Parameters:', params)
-      const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, params)
-      console.log('Raw API Response:', data)
+      
+      // Get weather data using Tomorrow.io API
+      const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, {
+        ...params,
+        fields: 'temperature,temperatureApparent,humidity,windSpeed,pressureSeaLevel,visibility,uvIndex,weatherCode,cloudCover,precipitationProbability'
+      })
+      
+      console.log('Raw Tomorrow.io API Response:', data)
       
       // Validate the response data
-      if (!data || !data.main || !data.weather || !data.weather[0]) {
-        throw new Error('Invalid weather data received from API')
+      if (!data.data || !data.data.values) {
+        throw new Error('Invalid weather data received from Tomorrow.io API')
       }
       
-      // Transform API data to our format
+      const values = data.data.values
+      
+      // Transform Tomorrow.io API data to our format
       const transformedWeatherData = {
-        city: data.name || cityName,
-        temperature: Math.round(data.main.temp),
-        feelsLike: Math.round(data.main.feels_like),
-        condition: getWeatherCondition(data.weather[0].main, data.weather[0].description),
-        humidity: data.main.humidity,
-        windSpeed: Math.round((data.wind?.speed || 0) * 3.6), // Convert m/s to km/h
-        pressure: data.main.pressure,
-        visibility: Math.round((data.visibility || 10000) / 1000), // Convert m to km
-        uvIndex: 5, // OpenWeatherMap doesn't provide UV in free tier
-        sunrise: data.sys?.sunrise ? new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true 
-        }) : '06:30 AM',
-        sunset: data.sys?.sunset ? new Date(data.sys.sunset * 1000).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true 
-        }) : '06:45 PM',
-        description: data.weather[0].description,
-        icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description)),
+        city: cityName,
+        temperature: Math.round(values.temperature),
+        feelsLike: Math.round(values.temperatureApparent),
+        condition: getWeatherCondition(values.weatherCode),
+        humidity: Math.round(values.humidity),
+        windSpeed: Math.round(values.windSpeed * 3.6), // Convert m/s to km/h
+        pressure: Math.round(values.pressureSeaLevel),
+        visibility: Math.round(values.visibility), // Already in km
+        uvIndex: values.uvIndex,
+        sunrise: '06:30 AM', // Tomorrow.io doesn't provide sunrise/sunset in free tier
+        sunset: '06:45 PM',
+        description: getWeatherCondition(values.weatherCode),
+        icon: getWeatherIcon(getWeatherCondition(values.weatherCode)),
         isDemo: false
       }
 
@@ -178,9 +199,9 @@ const WeatherApp = () => {
       console.log('Generated precautions:', dynamicPrecautions)
 
       // Fetch forecast data if coordinates are available
-      if (data.coord?.lat && data.coord?.lon) {
+      if (lat && lon) {
         try {
-          await fetchForecastData(data.coord.lat, data.coord.lon)
+          await fetchForecastData(lat, lon)
         } catch (forecastErr) {
           console.error('Forecast fetch failed:', forecastErr)
           // Don't fail the whole request if forecast fails
@@ -221,24 +242,32 @@ const WeatherApp = () => {
 
   const fetchForecastData = useCallback(async (lat, lon) => {
     try {
-      const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { lat, lon })
+      const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { 
+        location: `${lat},${lon}`,
+        timesteps: '1d',
+        fields: 'temperature,weatherCode,humidity,windSpeed,precipitationProbability'
+      })
 
-      // Group forecast by day and get daily data
-      const dailyData = data.list.filter((item, index) => index % 8 === 0) // Every 24 hours (8 * 3 hour intervals)
-      
-      const transformedForecastData = dailyData.slice(0, 7).map(day => ({
-        date: new Date(day.dt * 1000),
-        temp: Math.round(day.main.temp),
-        tempMin: Math.round(day.main.temp_min),
-        tempMax: Math.round(day.main.temp_max),
-        condition: getWeatherCondition(day.weather[0].main, day.weather[0].description),
-        humidity: day.main.humidity,
-        windSpeed: Math.round(day.wind.speed * 3.6),
-        rainChance: Math.round(day.pop * 100), // Probability of precipitation
-        uvIndex: 5
-      }))
+      if (!data.data || !data.data.timelines || !data.data.timelines[0]) {
+        throw new Error('Invalid forecast data received')
+      }
 
-      setForecastData(transformedForecastData)
+      // Process Tomorrow.io forecast data
+      const forecast = data.data.timelines[0].intervals
+        .slice(0, 7) // Get 7 days
+        .map(interval => ({
+          date: new Date(interval.startTime),
+          temp: Math.round(interval.values.temperature),
+          tempMin: Math.round(interval.values.temperature),
+          tempMax: Math.round(interval.values.temperature),
+          condition: getWeatherCondition(interval.values.weatherCode),
+          humidity: Math.round(interval.values.humidity),
+          windSpeed: Math.round(interval.values.windSpeed * 3.6), // Convert m/s to km/h
+          rainChance: Math.round(interval.values.precipitationProbability * 100),
+          icon: getWeatherIcon(getWeatherCondition(interval.values.weatherCode))
+        }))
+
+      setForecastData(forecast)
     } catch (err) {
       console.error('Forecast fetch error:', err)
     }
