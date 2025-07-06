@@ -1,5 +1,15 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import './WeatherApp.css'
+import { 
+  WEATHER_API_CONFIG, 
+  API_ENDPOINTS, 
+  getWeatherCondition, 
+  getWeatherIcon, 
+  getAqiLevel, 
+  getAqiColor, 
+  getHealthAdvice,
+  makeWeatherApiRequest 
+} from '../config/weatherApi'
 
 const WeatherApp = () => {
   const [city, setCity] = useState('')
@@ -27,12 +37,7 @@ const WeatherApp = () => {
     if (error) setError('')
   }, [error])
 
-  const handleSearch = useCallback(async () => {
-    if (!city.trim()) {
-      setError('Please enter a city name')
-      return
-    }
-
+  const fetchWeatherData = useCallback(async (cityName, lat = null, lon = null) => {
     setLoading(true)
     setError('')
     setWeatherData(null)
@@ -41,77 +46,91 @@ const WeatherApp = () => {
     setAlerts([])
 
     try {
-      // Simulate API call with mock data
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Mock current weather data with more realistic conditions
-      const conditions = ['Sunny', 'Partly Cloudy', 'Cloudy', 'Rainy', 'Snowy', 'Stormy', 'Foggy']
-      const selectedCondition = conditions[Math.floor(Math.random() * conditions.length)]
-      
-      const mockWeatherData = {
-        city: city,
-        temperature: Math.floor(Math.random() * 30) + 10,
-        feelsLike: Math.floor(Math.random() * 30) + 8,
-        condition: selectedCondition,
-        humidity: Math.floor(Math.random() * 40) + 40,
-        windSpeed: Math.floor(Math.random() * 20) + 5,
-        pressure: Math.floor(Math.random() * 50) + 1000,
-        visibility: Math.floor(Math.random() * 10) + 5,
-        uvIndex: Math.floor(Math.random() * 10) + 1,
-        sunrise: '06:30',
-        sunset: '18:45',
-        description: `${selectedCondition.toLowerCase()} conditions with varying cloud cover`,
-        icon: getWeatherIcon(selectedCondition)
-      }
-      
-      // Mock forecast data
-      const mockForecastData = Array.from({ length: 7 }, (_, i) => ({
-        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000),
-        temp: Math.floor(Math.random() * 30) + 10,
-        tempMin: Math.floor(Math.random() * 15) + 5,
-        tempMax: Math.floor(Math.random() * 20) + 20,
-        condition: conditions[Math.floor(Math.random() * conditions.length)],
-        humidity: Math.floor(Math.random() * 40) + 40,
-        windSpeed: Math.floor(Math.random() * 20) + 5,
-        rainChance: Math.floor(Math.random() * 100),
-        uvIndex: Math.floor(Math.random() * 10) + 1
-      }))
-
-      // Mock AQI data
-      const mockAqiData = {
-        aqi: Math.floor(Math.random() * 200) + 50,
-        level: getAqiLevel(Math.floor(Math.random() * 200) + 50),
-        pollutants: {
-          pm25: Math.floor(Math.random() * 50) + 10,
-          pm10: Math.floor(Math.random() * 100) + 20,
-          no2: Math.floor(Math.random() * 50) + 10,
-          o3: Math.floor(Math.random() * 100) + 30,
-          co: Math.floor(Math.random() * 5) + 1,
-          so2: Math.floor(Math.random() * 20) + 5
-        },
-        healthAdvice: getHealthAdvice(Math.floor(Math.random() * 200) + 50)
+      let params = {}
+      if (lat && lon) {
+        params = { lat, lon }
+      } else {
+        params = { q: cityName }
       }
 
-      // Mock alerts
-      const mockAlerts = Math.random() > 0.6 ? [{
-        id: 1,
-        type: 'Weather Alert',
-        title: 'Heavy Rain Expected',
-        description: 'Heavy rainfall expected in the next 24 hours. Please take necessary precautions.',
-        severity: 'Moderate',
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      }] : []
+      const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, params)
+      
+      // Transform API data to our format
+      const transformedWeatherData = {
+        city: data.name,
+        temperature: Math.round(data.main.temp),
+        feelsLike: Math.round(data.main.feels_like),
+        condition: getWeatherCondition(data.weather[0].main, data.weather[0].description),
+        humidity: data.main.humidity,
+        windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
+        pressure: data.main.pressure,
+        visibility: Math.round(data.visibility / 1000), // Convert m to km
+        uvIndex: 5, // OpenWeatherMap doesn't provide UV in free tier
+        sunrise: new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        }),
+        sunset: new Date(data.sys.sunset * 1000).toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        }),
+        description: data.weather[0].description,
+        icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description))
+      }
 
-      setWeatherData(mockWeatherData)
-      setForecastData(mockForecastData)
-      setAqiData(mockAqiData)
-      setAlerts(mockAlerts)
+      setWeatherData(transformedWeatherData)
+
+      // Fetch forecast data
+      await fetchForecastData(lat || data.coord.lat, lon || data.coord.lon)
+      
+      // Fetch AQI data (using mock data for now as OpenWeatherMap AQI requires paid plan)
+      setAqiData(generateMockAQI())
+      
+      // Generate mock alerts
+      setAlerts(generateMockAlerts())
+
     } catch (err) {
-      setError('Failed to fetch weather data')
+      setError(err.message || 'Failed to fetch weather data')
     } finally {
       setLoading(false)
     }
-  }, [city])
+  }, [])
+
+  const fetchForecastData = useCallback(async (lat, lon) => {
+    try {
+      const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { lat, lon })
+      
+      // Group forecast by day and get daily data
+      const dailyData = data.list.filter((item, index) => index % 8 === 0) // Every 24 hours (8 * 3 hour intervals)
+      
+      const transformedForecastData = dailyData.slice(0, 7).map(day => ({
+        date: new Date(day.dt * 1000),
+        temp: Math.round(day.main.temp),
+        tempMin: Math.round(day.main.temp_min),
+        tempMax: Math.round(day.main.temp_max),
+        condition: getWeatherCondition(day.weather[0].main, day.weather[0].description),
+        humidity: day.main.humidity,
+        windSpeed: Math.round(day.wind.speed * 3.6),
+        rainChance: Math.round(day.pop * 100), // Probability of precipitation
+        uvIndex: 5
+      }))
+
+      setForecastData(transformedForecastData)
+    } catch (err) {
+      console.error('Forecast fetch error:', err)
+    }
+  }, [])
+
+  const handleSearch = useCallback(async () => {
+    if (!city.trim()) {
+      setError('Please enter a city name')
+      return
+    }
+
+    await fetchWeatherData(city)
+  }, [city, fetchWeatherData])
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter') {
@@ -135,10 +154,8 @@ const WeatherApp = () => {
           lon: position.coords.longitude
         })
         
-        // Simulate weather data for current location
-        await new Promise(resolve => setTimeout(resolve, 1000))
         setCity('Your Location')
-        handleSearch()
+        await fetchWeatherData('Your Location', position.coords.latitude, position.coords.longitude)
       } catch (err) {
         setError('Unable to get your location. Please try searching for a city.')
       } finally {
@@ -147,7 +164,7 @@ const WeatherApp = () => {
     } else {
       setError('Geolocation is not supported by your browser.')
     }
-  }, [handleSearch])
+  }, [fetchWeatherData])
 
   const toggleDarkMode = useCallback(() => {
     setDarkMode(prev => !prev)
@@ -168,6 +185,28 @@ const WeatherApp = () => {
     }
   }, [weatherData])
 
+  // Helper functions
+  const getWeatherCondition = (main, description) => {
+    const conditions = {
+      'Clear': 'Sunny',
+      'Clouds': description.includes('few') || description.includes('scattered') ? 'Partly Cloudy' : 'Cloudy',
+      'Rain': 'Rainy',
+      'Snow': 'Snowy',
+      'Thunderstorm': 'Stormy',
+      'Drizzle': 'Rainy',
+      'Mist': 'Foggy',
+      'Fog': 'Foggy',
+      'Haze': 'Foggy',
+      'Smoke': 'Foggy',
+      'Dust': 'Foggy',
+      'Sand': 'Foggy',
+      'Ash': 'Foggy',
+      'Squall': 'Stormy',
+      'Tornado': 'Stormy'
+    }
+    return conditions[main] || 'Partly Cloudy'
+  }
+
   const getWeatherIcon = (condition) => {
     const icons = {
       'Sunny': '☀️',
@@ -179,6 +218,39 @@ const WeatherApp = () => {
       'Foggy': '🌫️'
     }
     return icons[condition] || '🌤️'
+  }
+
+  const generateMockAQI = () => {
+    const aqi = Math.floor(Math.random() * 150) + 30 // More realistic AQI range
+    return {
+      aqi: aqi,
+      level: getAqiLevel(aqi),
+      pollutants: {
+        pm25: Math.floor(Math.random() * 30) + 5,
+        pm10: Math.floor(Math.random() * 60) + 10,
+        no2: Math.floor(Math.random() * 30) + 5,
+        o3: Math.floor(Math.random() * 60) + 20,
+        co: Math.floor(Math.random() * 3) + 0.5,
+        so2: Math.floor(Math.random() * 15) + 2
+      },
+      healthAdvice: getHealthAdvice(aqi)
+    }
+  }
+
+  const generateMockAlerts = () => {
+    // Only show alerts for severe weather conditions
+    const conditions = ['Stormy', 'Snowy']
+    if (weatherData && conditions.includes(weatherData.condition)) {
+      return [{
+        id: 1,
+        type: 'Weather Alert',
+        title: `${weatherData.condition} Weather Warning`,
+        description: `Severe ${weatherData.condition.toLowerCase()} conditions expected. Please take necessary precautions.`,
+        severity: 'Moderate',
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      }]
+    }
+    return []
   }
 
   const getAqiLevel = (aqi) => {
@@ -316,6 +388,17 @@ const WeatherApp = () => {
           <div className="error-message" role="alert">
             <span className="error-icon">⚠️</span>
             <span className="error-text">{error}</span>
+          </div>
+        )}
+
+        {/* API Key Notice */}
+        {(!WEATHER_API_CONFIG.API_KEY || WEATHER_API_CONFIG.API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY') && (
+          <div className="error-message" role="alert">
+            <span className="error-icon">🔑</span>
+            <span className="error-text">
+              Please add your OpenWeatherMap API key to get real weather data. 
+              Get a free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer">openweathermap.org</a>
+            </span>
           </div>
         )}
 
