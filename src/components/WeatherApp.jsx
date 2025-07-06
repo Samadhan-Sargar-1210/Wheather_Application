@@ -5,7 +5,8 @@ import {
   getCurrentWeather, 
   fetchForecastData, 
   getWeatherCondition, 
-  getWeatherIcon
+  getWeatherIcon,
+  getCurrentLocation
 } from '../services/weatherService'
 import { 
   getAqiLevel, 
@@ -197,566 +198,317 @@ const WeatherApp = () => {
   }, [handleSearch])
 
   const handleLocationWeather = useCallback(async () => {
-    if (navigator.geolocation) {
-      setLoading(true)
-      try {
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 10000,
-            enableHighAccuracy: true
-          })
-        })
-        
-        setLocationData({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude
-        })
-        
-        console.log('Using location:', position.coords.latitude, position.coords.longitude)
-        setCity('Your Location')
-        await fetchWeatherData('Your Location', position.coords.latitude, position.coords.longitude)
-      } catch (err) {
-        console.error('Location error:', err)
-        setError('Unable to get your location. Please try searching for a city.')
-      } finally {
-        setLoading(false)
+    setLoading(true)
+    setError('')
+    
+    try {
+      console.log('Getting current location...')
+      const location = await getCurrentLocation()
+      console.log('Location obtained:', location)
+      
+      if (location) {
+        setLocationData(location)
+        await fetchWeatherData(location.name, location.lat, location.lon)
+        setCity(location.name)
       }
-    } else {
-      setError('Geolocation is not supported by your browser.')
+    } catch (error) {
+      console.error('Location error:', error)
+      
+      let errorMessage = 'Unable to get your location'
+      
+      if (error.code === 1) {
+        errorMessage = t('errors.locationDenied')
+      } else if (error.code === 2) {
+        errorMessage = t('errors.locationUnavailable')
+      } else if (error.code === 3) {
+        errorMessage = t('errors.locationTimeout')
+      } else if (error.message.includes('not supported')) {
+        errorMessage = t('errors.geolocationNotSupported')
+      } else {
+        errorMessage = t('errors.locationFailed')
+      }
+      
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
     }
-  }, [fetchWeatherData])
+  }, [fetchWeatherData, t])
 
-  const toggleDarkMode = useCallback(() => {
-    setDarkMode(prev => !prev)
-  }, [])
-
-  const handleSpeak = useCallback(() => {
-    if (!weatherData) return
-    
-    setSpeaking(true)
-    const text = `Current weather in ${weatherData.city} is ${weatherData.temperature} degrees Celsius with ${weatherData.condition.toLowerCase()} conditions.`
-    
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.onend = () => setSpeaking(false)
-      speechSynthesis.speak(utterance)
-    } else {
-      setSpeaking(false)
-    }
-  }, [weatherData])
-
-  // Helper functions
-  const getWeatherCondition = (main, description) => {
-    const conditions = {
-      'Clear': 'Sunny',
-      'Clouds': description.includes('few') || description.includes('scattered') ? 'Partly Cloudy' : 'Cloudy',
-      'Rain': 'Rainy',
-      'Snow': 'Snowy',
-      'Thunderstorm': 'Stormy',
-      'Drizzle': 'Rainy',
-      'Mist': 'Foggy',
-      'Fog': 'Foggy',
-      'Haze': 'Foggy',
-      'Smoke': 'Foggy',
-      'Dust': 'Foggy',
-      'Sand': 'Foggy',
-      'Ash': 'Foggy',
-      'Squall': 'Stormy',
-      'Tornado': 'Stormy'
-    }
-    return conditions[main] || 'Partly Cloudy'
-  }
-
-  const getWeatherIcon = (condition) => {
-    const icons = {
-      'Sunny': '☀️',
-      'Partly Cloudy': '⛅',
-      'Cloudy': '☁️',
-      'Rainy': '🌧️',
-      'Snowy': '❄️',
-      'Stormy': '⛈️',
-      'Foggy': '🌫️'
-    }
-    return icons[condition] || '🌤️'
-  }
-
+  // Mock data generation functions
   const generateMockAQI = () => {
-    const aqi = Math.floor(Math.random() * 150) + 30 // More realistic AQI range
+    const aqi = Math.floor(Math.random() * 150) + 20
     return {
-      aqi: aqi,
+      aqi,
       level: getAqiLevel(aqi),
+      color: getAqiColor(aqi),
+      advice: getHealthAdvice(aqi),
       pollutants: {
-        pm25: Math.floor(Math.random() * 30) + 5,
-        pm10: Math.floor(Math.random() * 60) + 10,
-        no2: Math.floor(Math.random() * 30) + 5,
+        pm25: Math.floor(Math.random() * 50) + 10,
+        pm10: Math.floor(Math.random() * 80) + 20,
         o3: Math.floor(Math.random() * 60) + 20,
-        co: Math.floor(Math.random() * 3) + 0.5,
-        so2: Math.floor(Math.random() * 15) + 2
-      },
-      healthAdvice: getHealthAdvice(aqi)
+        no2: Math.floor(Math.random() * 40) + 10
+      }
     }
   }
 
   const generateMockAlerts = () => {
-    // Only show alerts for severe weather conditions
-    const conditions = ['Stormy', 'Snowy']
-    if (weatherData && conditions.includes(weatherData.condition)) {
-      return [{
-        id: 1,
-        type: 'Weather Alert',
-        title: `${weatherData.condition} Weather Warning`,
-        description: `Severe ${weatherData.condition.toLowerCase()} conditions expected. Please take necessary precautions.`,
-        severity: 'Moderate',
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      }]
-    }
-    return []
-  }
-
-  const getAqiLevel = (aqi) => {
-    if (aqi <= 50) return 'Good'
-    if (aqi <= 100) return 'Moderate'
-    if (aqi <= 150) return 'Poor'
-    if (aqi <= 200) return 'Very Poor'
-    return 'Hazardous'
-  }
-
-  const getHealthAdvice = (aqi) => {
-    if (aqi <= 50) return 'Air quality is good. Enjoy outdoor activities.'
-    if (aqi <= 100) return 'Air quality is acceptable. Sensitive individuals may experience symptoms.'
-    if (aqi <= 150) return 'Air quality is moderate. Limit outdoor activities.'
-    if (aqi <= 200) return 'Air quality is poor. Avoid outdoor activities.'
-    return 'Air quality is very poor. Stay indoors.'
-  }
-
-  const getAqiColor = (aqi) => {
-    if (aqi <= 50) return '#00e400'
-    if (aqi <= 100) return '#ffff00'
-    if (aqi <= 150) return '#ff7e00'
-    if (aqi <= 200) return '#ff0000'
-    return '#8f3f97'
+    const alertTypes = ['Heat Warning', 'Rain Alert', 'Wind Advisory', 'Fog Warning']
+    const randomAlert = alertTypes[Math.floor(Math.random() * alertTypes.length)]
+    
+    return [{
+      id: 1,
+      type: randomAlert,
+      severity: 'Moderate',
+      description: `Weather alert for ${randomAlert.toLowerCase()}`,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }]
   }
 
   const getBackgroundClass = () => {
-    if (!weatherData) return 'bg-default'
-    const condition = weatherData.condition.toLowerCase()
-    if (condition.includes('sunny') || condition.includes('clear')) return 'bg-sunny'
-    if (condition.includes('rainy') || condition.includes('rain')) return 'bg-rainy'
-    if (condition.includes('snowy') || condition.includes('snow')) return 'bg-snowy'
-    if (condition.includes('stormy') || condition.includes('storm')) return 'bg-stormy'
-    if (condition.includes('cloudy') || condition.includes('cloud')) return 'bg-cloudy'
-    if (condition.includes('foggy') || condition.includes('fog')) return 'bg-foggy'
-    return 'bg-default'
+    if (!weatherData) return 'weather-bg-default'
+    
+    const condition = weatherData.condition?.toLowerCase() || ''
+    
+    if (condition.includes('rain') || condition.includes('drizzle')) return 'weather-bg-rainy'
+    if (condition.includes('snow') || condition.includes('ice')) return 'weather-bg-snowy'
+    if (condition.includes('storm') || condition.includes('thunder')) return 'weather-bg-stormy'
+    if (condition.includes('cloud') || condition.includes('fog')) return 'weather-bg-cloudy'
+    if (condition.includes('clear') || condition.includes('sunny')) return 'weather-bg-sunny'
+    
+    return 'weather-bg-default'
+  }
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode)
+    document.body.classList.toggle('dark-mode')
+  }
+
+  const speakWeather = () => {
+    if (!weatherData || speaking) return
+    
+    setSpeaking(true)
+    const text = `Current weather in ${weatherData.city}: ${weatherData.temperature} degrees Celsius, ${weatherData.condition}. Humidity is ${weatherData.humidity} percent.`
+    
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.onend = () => setSpeaking(false)
+      utterance.onerror = () => setSpeaking(false)
+      speechSynthesis.speak(utterance)
+    } else {
+      setSpeaking(false)
+    }
+  }
+
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    })
+  }
+
+  const getPrecautionsForCurrentGroup = () => {
+    if (!weatherData) return []
+    
+    const precautions = weatherPrecautions[selectedUserGroup] || []
+    return precautions.length > 0 ? precautions : [t('precautions.noAdvice')]
   }
 
   return (
-    <div className={`weather-app ${darkMode ? 'dark-mode' : ''} ${getBackgroundClass()}`}>
-      <div className="app-container">
-        {/* Header with Controls */}
-        <header className="app-header">
-          <div className="header-content">
-            <div className="logo-section">
-              <h1 className="app-title">
-                <span className="logo-icon">🌤️</span>
-                Weather Pro
-              </h1>
-              <p className="app-subtitle">Professional Weather Intelligence</p>
-            </div>
-            
-            <div className="header-controls">
-              <div className="time-display">
-                {currentTime.toLocaleTimeString('en-US', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: true 
-                })}
-              </div>
-              
-              <select 
-                className="language-select"
-                value={selectedLanguage}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-              >
-                <option value="en">🇺🇸 English</option>
-                <option value="hi">🇮🇳 हिंदी</option>
-                <option value="mr">🇮🇳 मराठी</option>
-                <option value="ta">🇮🇳 தமிழ்</option>
-              </select>
-              
-              <button 
-                className={`theme-toggle ${darkMode ? 'dark' : 'light'}`}
-                onClick={toggleDarkMode}
-                aria-label="Toggle dark mode"
-              >
-                {darkMode ? '☀️' : '🌙'}
-              </button>
-            </div>
+    <div className={`weather-app ${getBackgroundClass()} ${darkMode ? 'dark-mode' : ''}`}>
+      <div className="container">
+        {/* Header */}
+        <header className="header">
+          <h1 className="app-title">🌤️ {t('appTitle')}</h1>
+          <p className="app-subtitle">{t('appSubtitle')}</p>
+          
+          <div className="language-selector">
+            <select 
+              value={selectedLanguage} 
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="language-select"
+            >
+              <option value="en">🇺🇸 English</option>
+              <option value="hi">🇮🇳 हिंदी</option>
+              <option value="mr">🇮🇳 मराठी</option>
+              <option value="ta">🇮🇳 தமிழ்</option>
+            </select>
           </div>
         </header>
 
         {/* Search Section */}
         <section className="search-section">
-              <div className="search-container">
-            <div className="search-box">
-              <div className="input-group">
-                <span className="input-icon">🏙️</span>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={handleCityChange}
-                    onKeyPress={handleKeyPress}
-                    placeholder={t('weather.search.placeholder')}
-                    className="city-input"
-                    disabled={loading}
-                  />
-                </div>
-              
-              <div className="search-buttons">
-                <button 
-                  onClick={handleSearch}
-                  disabled={loading || !city.trim()}
-                  className="search-button primary"
-                >
-                  {loading ? (
-                    <span className="button-content">
-                      <div className="spinner-small"></div>
-                      <span>Searching...</span>
-                    </span>
-                  ) : (
-                    <span className="button-content">
-                      <span>🔍</span>
-                      <span>{t('weather.search.button')}</span>
-                    </span>
-                  )}
-                </button>
-
-                <button 
-                  onClick={handleLocationWeather}
-                  disabled={loading}
-                  className="search-button secondary"
-                  title={t('weather.location.button')}
-                >
-                  📍
-                </button>
-              </div>
-            </div>
-            
-            {/* Suggestions */}
-            {suggestions.length > 0 && (
-              <div className="suggestions-container">
-                <div className="suggestions-list">
+          <form onSubmit={handleSearch} className="search-container">
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                value={city}
+                onChange={handleCityChange}
+                onKeyPress={handleKeyPress}
+                placeholder={t('search.placeholder')}
+                className="city-input"
+                disabled={loading}
+              />
+              {suggestions.length > 0 && (
+                <div className="suggestions">
                   {suggestions.map((suggestion, index) => (
-                    <button
+                    <div
                       key={index}
                       className="suggestion-item"
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
-                      <span className="suggestion-icon">🏙️</span>
-                      <span className="suggestion-text">{suggestion}</span>
-                    </button>
+                      📍 {suggestion}
+                    </div>
                   ))}
                 </div>
+              )}
+            </div>
+            
+            <button type="submit" className="search-button" disabled={loading}>
+              <div className="button-content">
+                {loading ? '⏳' : '🔍'} {t('search.button')}
               </div>
-            )}
-          </div>
+            </button>
+            
+            <button 
+              type="button" 
+              onClick={handleLocationWeather} 
+              className="search-button secondary" 
+              disabled={loading}
+            >
+              <div className="button-content">
+                📍 {t('location.button')}
+              </div>
+            </button>
+          </form>
         </section>
 
         {/* Error Display */}
-            {error && (
-          <div className="error-message" role="alert">
-            <span className="error-icon">⚠️</span>
-            <span className="error-text">{error}</span>
-              </div>
-            )}
+        {error && (
+          <div className="error-message">
+            ⚠️ {error}
+          </div>
+        )}
 
-        {/* Main Content */}
-        <main className="main-content">
-            {loading && (
-              <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p className="loading-text">{t('weather.loading.text')}</p>
-              </div>
-            )}
+        {/* Loading State */}
+        {loading && (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p className="loading-text">{t('loading.fetching')}</p>
+          </div>
+        )}
 
-            {weatherData && (
-            <div className="weather-dashboard">
-              {/* Current Weather Card */}
-              <div className="weather-card current-weather">
-                <div className="card-header">
-                  <h2 className="city-name">{weatherData.city}</h2>
-                  <div className="weather-icon-large">
-                    {getWeatherIcon(weatherData.condition)}
-                  </div>
+        {/* Weather Display */}
+        {weatherData && !loading && (
+          <div className="weather-grid">
+            {/* Current Weather Card */}
+            <div className="weather-card">
+              <div className="card-header">
+                <h3>
+                  {getWeatherIcon(weatherData.condition)} {weatherData.city}
+                </h3>
+                <div className="temperature-display">
+                  {Math.round(weatherData.temperature)}°C
                 </div>
-                
-                <div className="weather-main">
-                  <div className="temperature-section">
-                    <div className="temperature">
-                      {weatherData.temperature}°C
-                    </div>
-                    <div className="feels-like">
-                      Feels like {weatherData.feelsLike}°C
-                    </div>
-                  </div>
-                  
-                  <div className="weather-info">
-                    <div className="condition">{weatherData.condition}</div>
-                    <div className="description">{weatherData.description}</div>
-                  </div>
+              </div>
+              
+              <div className="weather-info">
+                <div className="weather-item">
+                  <div className="weather-label">{t('feels_like')}</div>
+                  <div className="weather-value">{Math.round(weatherData.feelsLike)}°C</div>
                 </div>
-                
-                <div className="weather-details-grid">
-                  <div className="detail-item">
-                    <span className="detail-icon">💧</span>
-                    <div className="detail-content">
-                      <span className="detail-label">Humidity</span>
-                      <span className="detail-value">{weatherData.humidity}%</span>
-                    </div>
-                  </div>
-                  
-                  <div className="detail-item">
-                    <span className="detail-icon">💨</span>
-                    <div className="detail-content">
-                      <span className="detail-label">Wind</span>
-                      <span className="detail-value">{weatherData.windSpeed} km/h</span>
-                    </div>
-                  </div>
-                  
-                  <div className="detail-item">
-                    <span className="detail-icon">📊</span>
-                    <div className="detail-content">
-                      <span className="detail-label">Pressure</span>
-                      <span className="detail-value">{weatherData.pressure} hPa</span>
-                    </div>
-                  </div>
-                  
-                    <div className="detail-item">
-                    <span className="detail-icon">👁️</span>
-                    <div className="detail-content">
-                      <span className="detail-label">Visibility</span>
-                      <span className="detail-value">{weatherData.visibility} km</span>
-                    </div>
-                  </div>
-                  
-                    <div className="detail-item">
-                    <span className="detail-icon">☀️</span>
-                    <div className="detail-content">
-                      <span className="detail-label">UV Index</span>
-                      <span className="detail-value">{weatherData.uvIndex}</span>
-                    </div>
-                  </div>
-                  
-                    <div className="detail-item">
-                    <span className="detail-icon">🌅</span>
-                    <div className="detail-content">
-                      <span className="detail-label">Sunrise/Sunset</span>
-                      <span className="detail-value">{weatherData.sunrise} / {weatherData.sunset}</span>
-                    </div>
-                  </div>
+                <div className="weather-item">
+                  <div className="weather-label">{t('humidity')}</div>
+                  <div className="weather-value">{weatherData.humidity}%</div>
                 </div>
-                
-                <div className="card-actions">
-                  <button 
-                    onClick={handleSpeak}
-                    disabled={speaking}
-                    className="action-button"
+                <div className="weather-item">
+                  <div className="weather-label">{t('wind_speed')}</div>
+                  <div className="weather-value">{weatherData.windSpeed} km/h</div>
+                </div>
+                <div className="weather-item">
+                  <div className="weather-label">{t('pressure')}</div>
+                  <div className="weather-value">{weatherData.pressure} hPa</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Precautions Card */}
+            <div className="weather-card">
+              <div className="card-header">
+                <h3>🛡️ {t('weather_precautions')}</h3>
+                <div className="temperature-display">
+                  {Math.round(weatherData.temperature)}°C
+                </div>
+              </div>
+              
+              <div className="precautions-content">
+                <div className="user-group-selector">
+                  <label htmlFor="user-group">{t('select_user_group')}</label>
+                  <select
+                    id="user-group"
+                    value={selectedUserGroup}
+                    onChange={(e) => setSelectedUserGroup(e.target.value)}
+                    className="group-select"
                   >
-                    {speaking ? '🔇 Stop' : '🔊 Speak'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Air Quality Card */}
-              {aqiData && (
-                <div className="weather-card aqi-card">
-                  <div className="card-header">
-                    <h3>🌬️ Air Quality Index</h3>
-                  </div>
-                  
-                  <div className="aqi-main">
-                    <div 
-                      className="aqi-value"
-                      style={{ color: getAqiColor(aqiData.aqi) }}
-                    >
-                      {aqiData.aqi}
-                    </div>
-                    <div className="aqi-level">{aqiData.level}</div>
-                  </div>
-                  
-                  <div className="aqi-details">
-                    <div className="pollutant-grid">
-                      <div className="pollutant-item">
-                        <span className="pollutant-label">PM2.5</span>
-                        <span className="pollutant-value">{aqiData.pollutants.pm25} µg/m³</span>
-                      </div>
-                      <div className="pollutant-item">
-                        <span className="pollutant-label">PM10</span>
-                        <span className="pollutant-value">{aqiData.pollutants.pm10} µg/m³</span>
-                      </div>
-                      <div className="pollutant-item">
-                        <span className="pollutant-label">NO₂</span>
-                        <span className="pollutant-value">{aqiData.pollutants.no2} µg/m³</span>
-                      </div>
-                      <div className="pollutant-item">
-                        <span className="pollutant-label">O₃</span>
-                        <span className="pollutant-value">{aqiData.pollutants.o3} µg/m³</span>
-                      </div>
-                    </div>
-                    
-                    <div className="health-advice">
-                      <h4>💡 Health Advice</h4>
-                      <p>{aqiData.healthAdvice}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Weather Alerts */}
-              {alerts.length > 0 && (
-                <div className="weather-card alerts-card">
-                  <div className="card-header">
-                    <h3>🚨 Weather Alerts</h3>
-                    <span className="alert-count">({alerts.length})</span>
-                  </div>
-                  
-                  <div className="alerts-list">
-                    {alerts.map(alert => (
-                      <div key={alert.id} className="alert-item">
-                        <div className="alert-header">
-                          <div className="alert-title">{alert.title}</div>
-                          <div className="alert-severity">{alert.severity}</div>
-                        </div>
-                        <div className="alert-description">{alert.description}</div>
-                        <div className="alert-expires">
-                          Expires: {alert.expires.toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 7-Day Forecast */}
-              {forecastData && (
-                <div className="weather-card forecast-card">
-                  <div className="card-header">
-                    <h3>📅 7-Day Forecast</h3>
-                  </div>
-                  
-                  <div className="forecast-grid">
-                    {forecastData.map((day, index) => (
-                      <div key={index} className="forecast-day">
-                        <div className="forecast-date">
-                          {day.date.toLocaleDateString('en-US', { 
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </div>
-                        
-                        <div className="forecast-icon">
-                          {getWeatherIcon(day.condition)}
-                        </div>
-                        
-                        <div className="forecast-temps">
-                          <span className="temp-max">{day.tempMax}°</span>
-                          <span className="temp-min">{day.tempMin}°</span>
-                        </div>
-                        
-                        <div className="forecast-condition">
-                          {day.condition}
-              </div>
-                        
-                        <div className="forecast-details">
-                          <div className="forecast-detail">
-                            <span>💧</span> {day.humidity}%
-                          </div>
-                          <div className="forecast-detail">
-                            <span>💨</span> {day.windSpeed} km/h
-                          </div>
-                          <div className="forecast-detail">
-                            <span>🌧️</span> {day.rainChance}%
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-              </div>
-            )}
-
-              {/* Weather Precautions */}
-              <div className="weather-card precautions-card">
-                <div className="card-header">
-                  <h3>💡 {t('weather.precautions.title')}</h3>
-                  <span className="temperature-display">{weatherData.temperature}°C</span>
+                    <option value="city_residents">{t('city_residents')}</option>
+                    <option value="farmers">{t('farmers')}</option>
+                    <option value="small_children">{t('small_children')}</option>
+                    <option value="animals_livestock">{t('animals_livestock')}</option>
+                    <option value="commuters">{t('commuters')}</option>
+                    <option value="elderly">{t('elderly')}</option>
+                    <option value="athletes">{t('athletes')}</option>
+                    <option value="outdoor_workers">{t('outdoor_workers')}</option>
+                    <option value="drivers">{t('drivers')}</option>
+                  </select>
                 </div>
                 
-                <div className="precautions-content">
-                  <div className="user-group-selector">
-                    <label htmlFor="user-group">{t('select_user_group')}:</label>
-                    <select 
-                      id="user-group"
-                      value={selectedUserGroup} 
-                      onChange={(e) => setSelectedUserGroup(e.target.value)}
-                      className="group-select"
-                    >
-                      <option value="city_residents">🏙️ {t('city_residents')}</option>
-                      <option value="small_children">👶 {t('small_children')}</option>
-                      <option value="elderly">👴 {t('elderly')}</option>
-                      <option value="farmers">👨‍🌾 {t('farmers')}</option>
-                      <option value="athletes">🏃 {t('athletes')}</option>
-                      <option value="commuters">🚗 {t('commuters')}</option>
-                      <option value="animals_livestock">🐾 {t('animals_livestock')}</option>
-                      <option value="outdoor_workers">👷 {t('outdoor_workers')}</option>
-                      <option value="drivers">🚘 {t('drivers')}</option>
-                    </select>
-                  </div>
-                  
-                  <div className="precautions-list">
-                    {weatherPrecautions[selectedUserGroup] ? (
-                      weatherPrecautions[selectedUserGroup].map((precaution, index) => (
-                        <div key={index} className="precaution-item">
-                          <span className="precaution-icon">💡</span>
-                          <span className="precaution-text">{precaution}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="no-precautions">
-                        <span className="precaution-icon">✅</span>
-                        <span className="precaution-text">{t('precautions.noAdvice')}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {Object.keys(weatherPrecautions).length > 0 && (
-                    <div className="precautions-summary">
-                      <h4>📊 {t('weather_summary')}</h4>
-                      <div className="summary-grid">
-                        <div className="summary-item">
-                          <span className="summary-label">{t('temperature')}:</span>
-                          <span className="summary-value">{weatherData.temperature}°C</span>
-                        </div>
-                        <div className="summary-item">
-                          <span className="summary-label">{t('condition')}:</span>
-                          <span className="summary-value">{weatherData.condition}</span>
-                        </div>
-                        <div className="summary-item">
-                          <span className="summary-label">{t('humidity')}:</span>
-                          <span className="summary-value">{weatherData.humidity}%</span>
-                        </div>
-                        <div className="summary-item">
-                          <span className="summary-label">{t('wind_speed')}:</span>
-                          <span className="summary-value">{weatherData.windSpeed} km/h</span>
-                        </div>
-                      </div>
+                <ul className="precautions-list">
+                  {getPrecautionsForCurrentGroup().map((precaution, index) => (
+                    <li key={index}>
+                      <span className="precaution-icon">💡</span>
+                      <span className="precaution-text">{precaution}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <div className="precautions-summary">
+                  <h4>{t('weather_summary')}</h4>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <span className="summary-label">{t('temperature')}</span>
+                      <span className="summary-value">{Math.round(weatherData.temperature)}°C</span>
                     </div>
-                  )}
+                    <div className="summary-item">
+                      <span className="summary-label">{t('humidity')}</span>
+                      <span className="summary-value">{weatherData.humidity}%</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">{t('wind_speed')}</span>
+                      <span className="summary-value">{weatherData.windSpeed} km/h</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">{t('condition')}</span>
+                      <span className="summary-value">{weatherData.condition}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              </div>
-            )}
-        </main>
-        </div>
+            </div>
+          </div>
+        )}
+
+        {/* Welcome Message */}
+        {!weatherData && !loading && !error && (
+          <div className="weather-card">
+            <div className="card-header">
+              <h3>🌤️ {t('appTitle')}</h3>
+            </div>
+            <p style={{ textAlign: 'center', fontSize: '1.1rem', color: 'var(--text-secondary)' }}>
+              {t('welcome.message')}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

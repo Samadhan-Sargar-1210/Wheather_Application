@@ -425,7 +425,7 @@ export const getCurrentWeather = async (city) => {
   }
 }
 
-// Get current location
+// Get current location with city name
 export const getCurrentLocation = () => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -434,18 +434,82 @@ export const getCurrentLocation = () => {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude
-        })
+      async (position) => {
+        try {
+          const { latitude: lat, longitude: lon } = position.coords
+          console.log('Got coordinates:', lat, lon)
+          
+          // Try to get city name using reverse geocoding
+          try {
+            const weatherData = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, {
+              location: `${lat},${lon}`,
+              fields: 'temperature'
+            })
+            
+            if (weatherData.data && weatherData.data.location) {
+              const location = weatherData.data.location
+              resolve({
+                lat,
+                lon,
+                name: location.name || 'Your Location',
+                country: location.country || 'Unknown',
+                state: location.state || '',
+                fullName: location.name ? `${location.name}, ${location.country || 'Unknown'}` : 'Your Location'
+              })
+            } else {
+              // Fallback if no location name available
+              resolve({
+                lat,
+                lon,
+                name: 'Your Location',
+                country: 'Unknown',
+                state: '',
+                fullName: 'Your Location'
+              })
+            }
+          } catch (reverseError) {
+            console.log('Reverse geocoding failed, using fallback:', reverseError)
+            // Fallback if reverse geocoding fails
+            resolve({
+              lat,
+              lon,
+              name: 'Your Location',
+              country: 'Unknown',
+              state: '',
+              fullName: 'Your Location'
+            })
+          }
+        } catch (error) {
+          reject(error)
+        }
       },
       (error) => {
-        reject(new Error(`Geolocation error: ${error.message}`))
+        console.error('Geolocation error:', error)
+        
+        // Provide specific error messages based on error code
+        let errorMessage = 'Unable to get your location'
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location services in your browser settings.'
+            break
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable. Please try again.'
+            break
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out. Please try again.'
+            break
+          default:
+            errorMessage = `Location error: ${error.message}`
+        }
+        
+        const enhancedError = new Error(errorMessage)
+        enhancedError.code = error.code
+        reject(enhancedError)
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000, // Increased timeout
         maximumAge: 300000 // 5 minutes
       }
     )
