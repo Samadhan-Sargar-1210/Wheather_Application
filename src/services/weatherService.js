@@ -1,5 +1,5 @@
 // Weather API Service for Tomorrow.io
-import { API_KEY, API_BASE_URL } from '../config/weatherApi.js'
+import { WEATHER_API_CONFIG } from '../config/weatherApi.js'
 
 const API_ENDPOINTS = {
   CURRENT_WEATHER: '/weather/realtime',
@@ -12,12 +12,12 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   try {
     // Add API key and units to all requests
     const queryParams = new URLSearchParams({
-      apikey: API_KEY,
-      units: 'metric',
+      apikey: WEATHER_API_CONFIG.API_KEY,
+      units: WEATHER_API_CONFIG.UNITS,
       ...params
     })
 
-    const url = `${API_BASE_URL}${endpoint}?${queryParams}`
+    const url = `${WEATHER_API_CONFIG.BASE_URL}${endpoint}?${queryParams}`
     console.log('Making Tomorrow.io API request to:', url)
 
     const response = await fetch(url)
