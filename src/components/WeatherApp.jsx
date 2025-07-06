@@ -10,6 +10,7 @@ import {
   getHealthAdvice,
   makeWeatherApiRequest 
 } from '../config/weatherApi'
+import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
 
 const WeatherApp = () => {
   const [city, setCity] = useState('')
@@ -27,6 +28,7 @@ const WeatherApp = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('en')
   const [searchHistory, setSearchHistory] = useState([])
   const [suggestions, setSuggestions] = useState([])
+  const [weatherPrecautions, setWeatherPrecautions] = useState({})
 
   // Common nearby cities for different regions
   const nearbyCities = {
@@ -169,6 +171,11 @@ const WeatherApp = () => {
 
       console.log('Transformed weather data:', transformedWeatherData)
       setWeatherData(transformedWeatherData)
+
+      // Generate dynamic precautions based on weather data
+      const dynamicPrecautions = generateDynamicPrecautions(transformedWeatherData)
+      setWeatherPrecautions(dynamicPrecautions)
+      console.log('Generated precautions:', dynamicPrecautions)
 
       // Fetch forecast data if coordinates are available
       if (data.coord?.lat && data.coord?.lon) {
@@ -754,6 +761,7 @@ const WeatherApp = () => {
               <div className="weather-card precautions-card">
                 <div className="card-header">
                   <h3>💡 Weather Precautions</h3>
+                  <span className="temperature-display">{weatherData.temperature}°C</span>
                 </div>
                 
                 <div className="precautions-content">
@@ -766,32 +774,58 @@ const WeatherApp = () => {
                       className="group-select"
                     >
                       <option value="city_residents">🏙️ City Residents</option>
-                      <option value="children">👶 Children</option>
+                      <option value="small_children">👶 Small Children</option>
+                      <option value="elderly">👴 Elderly</option>
                       <option value="farmers">👨‍🌾 Farmers</option>
-                      <option value="animals">🐾 Animals</option>
+                      <option value="athletes">🏃 Athletes</option>
+                      <option value="commuters">🚗 Commuters</option>
+                      <option value="animals_livestock">🐾 Animals & Livestock</option>
+                      <option value="outdoor_workers">👷 Outdoor Workers</option>
+                      <option value="drivers">🚘 Drivers</option>
                     </select>
                   </div>
                   
                   <div className="precautions-list">
-                    <div className="precaution-item">
-                      <span className="precaution-icon">💧</span>
-                      <span>Stay hydrated and avoid prolonged sun exposure</span>
-                    </div>
-                    <div className="precaution-item">
-                      <span className="precaution-icon">👕</span>
-                      <span>Wear appropriate clothing for the weather conditions</span>
-                    </div>
-                    <div className="precaution-item">
-                      <span className="precaution-icon">📱</span>
-                      <span>Check local weather updates regularly</span>
-                    </div>
-                    <div className="precaution-item">
-                      <span className="precaution-icon">⚠️</span>
-                      <span>Follow safety guidelines during extreme weather</span>
-                    </div>
+                    {weatherPrecautions[selectedUserGroup] ? (
+                      weatherPrecautions[selectedUserGroup].map((precaution, index) => (
+                        <div key={index} className="precaution-item">
+                          <span className="precaution-icon">💡</span>
+                          <span className="precaution-text">{precaution}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-precautions">
+                        <span className="precaution-icon">✅</span>
+                        <span className="precaution-text">No specific precautions needed for current weather conditions.</span>
+                      </div>
+                    )}
                   </div>
+                  
+                  {Object.keys(weatherPrecautions).length > 0 && (
+                    <div className="precautions-summary">
+                      <h4>📊 Weather Summary</h4>
+                      <div className="summary-grid">
+                        <div className="summary-item">
+                          <span className="summary-label">Temperature:</span>
+                          <span className="summary-value">{weatherData.temperature}°C</span>
+                        </div>
+                        <div className="summary-item">
+                          <span className="summary-label">Condition:</span>
+                          <span className="summary-value">{weatherData.condition}</span>
+                        </div>
+                        <div className="summary-item">
+                          <span className="summary-label">Humidity:</span>
+                          <span className="summary-value">{weatherData.humidity}%</span>
+                        </div>
+                        <div className="summary-item">
+                          <span className="summary-label">Wind:</span>
+                          <span className="summary-value">{weatherData.windSpeed} km/h</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                </div>
+              </div>
               </div>
             )}
         </main>
