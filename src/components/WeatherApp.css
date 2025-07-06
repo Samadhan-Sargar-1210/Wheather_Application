@@ -40,7 +40,7 @@
 }
 
 .container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
@@ -129,34 +129,31 @@
 }
 
 .weather-display {
-  margin-top: 30px;
   flex: 1;
-  min-height: 400px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.weather-card {
+.weather-card, .aqi-card, .alerts-card, .forecast-card, .precautions-card {
   background: rgba(255,255,255,0.1);
   border-radius: 20px;
   padding: 30px;
-  text-align: center;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.2);
   box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  width: 100%;
-  max-width: 500px;
 }
 
-.weather-card h2 {
-  font-size: 2.5rem;
+.weather-card h2, .aqi-card h3, .alerts-card h3, .forecast-card h3, .precautions-card h3 {
+  font-size: 2rem;
   margin-bottom: 20px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  text-align: center;
 }
 
 .weather-main {
   margin-bottom: 30px;
+  text-align: center;
 }
 
 .temperature {
@@ -164,6 +161,12 @@
   font-weight: bold;
   margin-bottom: 10px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.feels-like {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  margin-bottom: 10px;
 }
 
 .condition {
@@ -198,6 +201,146 @@
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.2);
   font-style: italic;
+  text-align: center;
+}
+
+/* AQI Card Styles */
+.aqi-main {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.aqi-value {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.aqi-level {
+  font-size: 1.5rem;
+  opacity: 0.9;
+}
+
+.aqi-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.pollutant {
+  background: rgba(255,255,255,0.1);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  text-align: center;
+}
+
+.pollutant span {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Alerts Card Styles */
+.alert-item {
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.alert-title {
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.alert-description {
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.alert-severity {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Forecast Card Styles */
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.forecast-day {
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.forecast-date {
+  font-weight: bold;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.forecast-temp {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.forecast-condition {
+  margin-bottom: 15px;
+  opacity: 0.9;
+}
+
+.forecast-details {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.forecast-details div {
+  margin-bottom: 5px;
+}
+
+/* Precautions Card Styles */
+.user-group-selector {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.user-group-selector label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.user-group-selector select {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.9);
+  color: #333;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.precautions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.precaution-item {
+  background: rgba(255,255,255,0.1);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
 }
 
 .loading {
@@ -264,12 +407,12 @@ body {
     font-size: 3rem;
   }
   
-  .weather-display {
-    min-height: 300px;
+  .forecast-grid {
+    grid-template-columns: 1fr;
   }
   
-  .loading {
-    min-height: 300px;
+  .aqi-details {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -480,36 +623,6 @@ body {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
   border-color: var(--accent-primary);
-}
-
-.precautions-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.precaution-item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.6;
-  transition: all var(--transition-smooth);
-  position: relative;
-  overflow: hidden;
-}
-
-.precaution-item::before {
-  content: '💡';
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.2rem;
-  opacity: 0.7;
 }
 
 .precaution-item {
