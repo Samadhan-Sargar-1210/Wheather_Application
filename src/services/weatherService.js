@@ -60,27 +60,64 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   }
 }
 
-// Enhanced geocoding function
+// Enhanced geocoding function with better village support
 export const getCoordinates = async (cityName) => {
   try {
     console.log('Getting coordinates for:', cityName)
-    const data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+    
+    // First try with the exact name
+    let data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
       q: cityName,
-      limit: 1
+      limit: 5
     })
     
     console.log('Geocoding response:', data)
     
     if (!Array.isArray(data) || data.length === 0) {
-      throw new Error(`No coordinates found for "${cityName}"`)
+      // If no results, try with country code for better matching
+      console.log('No results found, trying with country code...')
+      data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+        q: `${cityName},IN`, // Add India as default country
+        limit: 5
+      })
     }
     
+    if (!Array.isArray(data) || data.length === 0) {
+      // Try with different country codes
+      const countries = ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'JP', 'CN']
+      for (const country of countries) {
+        try {
+          console.log(`Trying with country code: ${country}`)
+          data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+            q: `${cityName},${country}`,
+            limit: 3
+          })
+          if (Array.isArray(data) && data.length > 0) {
+            console.log(`Found results with country ${country}:`, data)
+            break
+          }
+        } catch (err) {
+          console.log(`No results for ${country}`)
+          continue
+        }
+      }
+    }
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error(`No coordinates found for "${cityName}". Try searching for a nearby larger city.`)
+    }
+    
+    // Return the best match (usually the first one)
     const location = data[0]
+    console.log('Selected location:', location)
+    
     return {
       lat: location.lat,
       lon: location.lon,
       name: location.name,
-      country: location.country
+      country: location.country,
+      state: location.state,
+      fullName: location.name + (location.state ? `, ${location.state}` : '') + `, ${location.country}`
     }
   } catch (error) {
     console.error('Geocoding failed:', error)
@@ -200,11 +237,31 @@ export const generateMockAlerts = () => {
   return []
 }
 
-// Main weather fetching function
+// Main weather fetching function with enhanced village support
 export const getCurrentWeather = async (city) => {
   try {
     console.log('Getting current weather for:', city)
-    const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
+    
+    // First try direct weather API call
+    let data
+    try {
+      data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
+    } catch (directError) {
+      console.log('Direct weather API failed, trying geocoding...')
+      
+      // If direct call fails, try geocoding first
+      const coords = await getCoordinates(city)
+      console.log('Got coordinates:', coords)
+      
+      // Use coordinates to get weather
+      data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { 
+        lat: coords.lat, 
+        lon: coords.lon 
+      })
+      
+      // Update city name to the resolved location
+      data.name = coords.fullName || coords.name
+    }
     
     if (!data || !data.main || !data.weather || !data.weather[0]) {
       throw new Error('Invalid weather data received')
@@ -236,6 +293,12 @@ export const getCurrentWeather = async (city) => {
     }
   } catch (error) {
     console.error('getCurrentWeather failed:', error)
+    
+    // Provide helpful error message for villages
+    if (error.message.includes('No coordinates found')) {
+      throw new Error(`Weather data not available for "${city}". Try searching for a nearby larger city or town.`)
+    }
+    
     throw error
   }
 }

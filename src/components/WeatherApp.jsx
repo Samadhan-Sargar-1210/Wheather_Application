@@ -26,6 +26,46 @@ const WeatherApp = () => {
   const [speaking, setSpeaking] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
   const [searchHistory, setSearchHistory] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+
+  // Common nearby cities for different regions
+  const nearbyCities = {
+    'maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Aurangabad', 'Nashik', 'Kolhapur', 'Solapur'],
+    'karnataka': ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga'],
+    'tamil nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli', 'Vellore'],
+    'kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Palakkad'],
+    'andhra pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool'],
+    'telangana': ['Hyderabad', 'Warangal', 'Karimnagar', 'Nizamabad', 'Adilabad', 'Khammam'],
+    'gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar'],
+    'rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Bikaner', 'Ajmer'],
+    'madhya pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar'],
+    'uttar pradesh': ['Lucknow', 'Kanpur', 'Varanasi', 'Agra', 'Prayagraj', 'Ghaziabad']
+  }
+
+  // Get suggestions based on the search term
+  const getSuggestions = (searchTerm) => {
+    if (!searchTerm || searchTerm.length < 2) return []
+    
+    const term = searchTerm.toLowerCase()
+    const suggestions = []
+    
+    // Check if it matches any state/region
+    for (const [region, cities] of Object.entries(nearbyCities)) {
+      if (region.includes(term) || term.includes(region)) {
+        suggestions.push(...cities.slice(0, 3))
+      }
+    }
+    
+    // Add some common large cities
+    const commonCities = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad']
+    commonCities.forEach(city => {
+      if (city.toLowerCase().includes(term) && !suggestions.includes(city)) {
+        suggestions.push(city)
+      }
+    })
+    
+    return suggestions.slice(0, 5)
+  }
 
   // Update time every minute
   useEffect(() => {
@@ -34,9 +74,21 @@ const WeatherApp = () => {
   }, [])
 
   const handleCityChange = useCallback((e) => {
-    setCity(e.target.value)
+    const value = e.target.value
+    setCity(value)
     if (error) setError('')
+    
+    // Show suggestions as user types
+    const newSuggestions = getSuggestions(value)
+    setSuggestions(newSuggestions)
   }, [error])
+
+  const handleSuggestionClick = (suggestion) => {
+    setCity(suggestion)
+    setSuggestions([])
+    // Auto-search for the suggestion
+    fetchWeatherData(suggestion)
+  }
 
   // Test function to verify API is working
   const testAPI = useCallback(async () => {
@@ -77,7 +129,7 @@ const WeatherApp = () => {
         console.log('Fetching weather by coordinates:', lat, lon)
       } else {
         params = { q: cityName }
-        console.log('Fetching weather for city:', cityName)
+        console.log('Fetching weather for city/village:', cityName)
       }
 
       console.log('API Parameters:', params)
@@ -135,11 +187,15 @@ const WeatherApp = () => {
     } catch (err) {
       console.error('Weather fetch error:', err)
       
-      // Provide more specific error messages
+      // Provide more specific error messages for villages
       let errorMessage = 'Failed to fetch weather data'
       
       if (err.message.includes('404')) {
-        errorMessage = `City "${cityName}" not found. Please check the spelling and try again.`
+        errorMessage = `"${cityName}" not found. Try searching for a nearby larger city or town.`
+      } else if (err.message.includes('No coordinates found')) {
+        errorMessage = `Weather data not available for "${cityName}". Try searching for a nearby larger city or town.`
+      } else if (err.message.includes('Weather data not available')) {
+        errorMessage = err.message
       } else if (err.message.includes('401')) {
         errorMessage = 'API key error. Please check the configuration.'
       } else if (err.message.includes('429')) {
@@ -450,6 +506,24 @@ const WeatherApp = () => {
                 </button>
               </div>
             </div>
+            
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <div className="suggestions-container">
+                <div className="suggestions-list">
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      className="suggestion-item"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <span className="suggestion-icon">🏙️</span>
+                      <span className="suggestion-text">{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
