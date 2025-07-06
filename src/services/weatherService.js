@@ -470,7 +470,7 @@ export const getCurrentLocation = () => {
           } catch (reverseError) {
             console.log('Reverse geocoding failed, using fallback:', reverseError)
             // Fallback if reverse geocoding fails
-            resolve({
+        resolve({
               lat,
               lon,
               name: 'Your Location',

@@ -59,9 +59,9 @@ const WeatherApp = () => {
     for (const [region, cities] of Object.entries(nearbyCities)) {
       if (region.includes(term) || term.includes(region)) {
         suggestions.push(...cities.slice(0, 3))
-      }
     }
-    
+  }
+
     // Add some common large cities
     const commonCities = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad']
     commonCities.forEach(city => {
@@ -103,11 +103,11 @@ const WeatherApp = () => {
   }
 
   const fetchWeatherData = useCallback(async (cityName, lat = null, lon = null) => {
-    setLoading(true)
-    setError('')
-    setWeatherData(null)
-    setForecastData(null)
-    setAqiData(null)
+      setLoading(true)
+      setError('')
+      setWeatherData(null)
+      setForecastData(null)
+      setAqiData(null)
     setAlerts([])
 
     try {
@@ -198,9 +198,9 @@ const WeatherApp = () => {
   }, [handleSearch])
 
   const handleLocationWeather = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    
+      setLoading(true)
+      setError('')
+
     try {
       console.log('Getting current location...')
       const location = await getCurrentLocation()
@@ -323,30 +323,30 @@ const WeatherApp = () => {
           <p className="app-subtitle">{t('appSubtitle')}</p>
           
           <div className="language-selector">
-            <select 
+              <select 
               value={selectedLanguage} 
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              className="language-select"
-            >
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="language-select"
+              >
               <option value="en">🇺🇸 English</option>
               <option value="hi">🇮🇳 हिंदी</option>
               <option value="mr">🇮🇳 मराठी</option>
               <option value="ta">🇮🇳 தமிழ்</option>
-            </select>
-          </div>
+              </select>
+            </div>
         </header>
 
         {/* Search Section */}
         <section className="search-section">
           <form onSubmit={handleSearch} className="search-container">
             <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                type="text"
-                value={city}
-                onChange={handleCityChange}
-                onKeyPress={handleKeyPress}
-                placeholder={t('search.placeholder')}
-                className="city-input"
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={handleCityChange}
+                    onKeyPress={handleKeyPress}
+                    placeholder={t('search.placeholder')}
+                    className="city-input"
                 disabled={loading}
               />
               {suggestions.length > 0 && (
@@ -358,7 +358,7 @@ const WeatherApp = () => {
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
                       📍 {suggestion}
-                    </div>
+                </div>
                   ))}
                 </div>
               )}
@@ -369,10 +369,10 @@ const WeatherApp = () => {
                 {loading ? '⏳' : '🔍'} {t('search.button')}
               </div>
             </button>
-            
-            <button 
+
+                <button 
               type="button" 
-              onClick={handleLocationWeather} 
+                  onClick={handleLocationWeather}
               className="search-button secondary" 
               disabled={loading}
             >
@@ -384,18 +384,18 @@ const WeatherApp = () => {
         </section>
 
         {/* Error Display */}
-        {error && (
+            {error && (
           <div className="error-message">
             ⚠️ {error}
-          </div>
-        )}
+              </div>
+            )}
 
         {/* Loading State */}
         {loading && (
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p className="loading-text">{t('loading.fetching')}</p>
-          </div>
+                </div>
         )}
 
         {/* Weather Display */}
@@ -416,11 +416,11 @@ const WeatherApp = () => {
                 <div className="weather-item">
                   <div className="weather-label">{t('feels_like')}</div>
                   <div className="weather-value">{Math.round(weatherData.feelsLike)}°C</div>
-                </div>
+              </div>
                 <div className="weather-item">
                   <div className="weather-label">{t('humidity')}</div>
                   <div className="weather-value">{weatherData.humidity}%</div>
-                </div>
+              </div>
                 <div className="weather-item">
                   <div className="weather-label">{t('wind_speed')}</div>
                   <div className="weather-value">{weatherData.windSpeed} km/h</div>
@@ -428,9 +428,9 @@ const WeatherApp = () => {
                 <div className="weather-item">
                   <div className="weather-label">{t('pressure')}</div>
                   <div className="weather-value">{weatherData.pressure} hPa</div>
-                </div>
-              </div>
-            </div>
+                    </div>
+                    </div>
+                  </div>
 
             {/* Precautions Card */}
             <div className="weather-card">
@@ -489,13 +489,13 @@ const WeatherApp = () => {
                     <div className="summary-item">
                       <span className="summary-label">{t('condition')}</span>
                       <span className="summary-value">{weatherData.condition}</span>
-                    </div>
-                  </div>
+              </div>
+              </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            )}
 
         {/* Welcome Message */}
         {!weatherData && !loading && !error && (
@@ -508,7 +508,7 @@ const WeatherApp = () => {
             </p>
           </div>
         )}
-      </div>
+        </div>
     </div>
   )
 }
