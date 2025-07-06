@@ -37,6 +37,27 @@ const WeatherApp = () => {
     if (error) setError('')
   }, [error])
 
+  // Test function to verify API is working
+  const testAPI = useCallback(async () => {
+    console.log('Testing API with different cities...')
+    
+    const cities = ['London', 'Mumbai', 'New York', 'Tokyo']
+    
+    for (const city of cities) {
+      try {
+        const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
+        console.log(`${city}: ${Math.round(data.main.temp)}°C`)
+      } catch (err) {
+        console.error(`Error fetching ${city}:`, err)
+      }
+    }
+  }, [])
+
+  // Call test on component mount
+  useEffect(() => {
+    testAPI()
+  }, [testAPI])
+
   const fetchWeatherData = useCallback(async (cityName, lat = null, lon = null) => {
     setLoading(true)
     setError('')
@@ -53,7 +74,9 @@ const WeatherApp = () => {
         params = { q: cityName }
       }
 
+      console.log('Fetching weather for:', cityName, 'with params:', params)
       const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, params)
+      console.log('API Response:', data)
       
       // Transform API data to our format
       const transformedWeatherData = {
@@ -81,6 +104,7 @@ const WeatherApp = () => {
         isDemo: false
       }
 
+      console.log('Transformed weather data:', transformedWeatherData)
       setWeatherData(transformedWeatherData)
 
       // Fetch forecast data
@@ -93,6 +117,7 @@ const WeatherApp = () => {
       setAlerts(generateMockAlerts())
 
     } catch (err) {
+      console.error('Weather fetch error:', err)
       setError(err.message || 'Failed to fetch weather data')
     } finally {
       setLoading(false)
@@ -102,7 +127,7 @@ const WeatherApp = () => {
   const fetchForecastData = useCallback(async (lat, lon) => {
     try {
       const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { lat, lon })
-      
+
       // Group forecast by day and get daily data
       const dailyData = data.list.filter((item, index) => index % 8 === 0) // Every 24 hours (8 * 3 hour intervals)
       
@@ -130,7 +155,8 @@ const WeatherApp = () => {
       return
     }
 
-    await fetchWeatherData(city)
+    console.log('Searching for city:', city)
+    await fetchWeatherData(city.trim())
   }, [city, fetchWeatherData])
 
   const handleKeyPress = useCallback((e) => {
@@ -155,9 +181,11 @@ const WeatherApp = () => {
           lon: position.coords.longitude
         })
         
+        console.log('Using location:', position.coords.latitude, position.coords.longitude)
         setCity('Your Location')
         await fetchWeatherData('Your Location', position.coords.latitude, position.coords.longitude)
       } catch (err) {
+        console.error('Location error:', err)
         setError('Unable to get your location. Please try searching for a city.')
       } finally {
         setLoading(false)
@@ -337,20 +365,20 @@ const WeatherApp = () => {
 
         {/* Search Section */}
         <section className="search-section">
-          <div className="search-container">
+              <div className="search-container">
             <div className="search-box">
               <div className="input-group">
                 <span className="input-icon">🏙️</span>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={handleCityChange}
-                  onKeyPress={handleKeyPress}
+                  <input
+                    type="text"
+                    value={city}
+                    onChange={handleCityChange}
+                    onKeyPress={handleKeyPress}
                   placeholder="Enter city name..."
-                  className="city-input"
+                    className="city-input"
                   disabled={loading}
                 />
-              </div>
+                </div>
               
               <div className="search-buttons">
                 <button 
@@ -370,7 +398,7 @@ const WeatherApp = () => {
                     </span>
                   )}
                 </button>
-                
+
                 <button 
                   onClick={handleLocationWeather}
                   disabled={loading}
@@ -385,23 +413,23 @@ const WeatherApp = () => {
         </section>
 
         {/* Error Display */}
-        {error && (
+            {error && (
           <div className="error-message" role="alert">
             <span className="error-icon">⚠️</span>
             <span className="error-text">{error}</span>
-          </div>
-        )}
+              </div>
+            )}
 
         {/* Main Content */}
         <main className="main-content">
-          {loading && (
-            <div className="loading-container">
+            {loading && (
+              <div className="loading-container">
               <div className="loading-spinner"></div>
               <p className="loading-text">Fetching weather data...</p>
-            </div>
-          )}
+              </div>
+            )}
 
-          {weatherData && (
+            {weatherData && (
             <div className="weather-dashboard">
               {/* Current Weather Card */}
               <div className="weather-card current-weather">
@@ -453,7 +481,7 @@ const WeatherApp = () => {
                     </div>
                   </div>
                   
-                  <div className="detail-item">
+                    <div className="detail-item">
                     <span className="detail-icon">👁️</span>
                     <div className="detail-content">
                       <span className="detail-label">Visibility</span>
@@ -461,7 +489,7 @@ const WeatherApp = () => {
                     </div>
                   </div>
                   
-                  <div className="detail-item">
+                    <div className="detail-item">
                     <span className="detail-icon">☀️</span>
                     <div className="detail-content">
                       <span className="detail-label">UV Index</span>
@@ -469,7 +497,7 @@ const WeatherApp = () => {
                     </div>
                   </div>
                   
-                  <div className="detail-item">
+                    <div className="detail-item">
                     <span className="detail-icon">🌅</span>
                     <div className="detail-content">
                       <span className="detail-label">Sunrise/Sunset</span>
@@ -588,7 +616,7 @@ const WeatherApp = () => {
                         
                         <div className="forecast-condition">
                           {day.condition}
-                        </div>
+              </div>
                         
                         <div className="forecast-details">
                           <div className="forecast-detail">
@@ -604,8 +632,8 @@ const WeatherApp = () => {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+              </div>
+            )}
 
               {/* Weather Precautions */}
               <div className="weather-card precautions-card">
@@ -648,11 +676,11 @@ const WeatherApp = () => {
                     </div>
                   </div>
                 </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </main>
-      </div>
+        </div>
     </div>
   )
 }

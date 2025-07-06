@@ -120,11 +120,17 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
     url.searchParams.append(key, value)
   })
   
+  console.log('Making API request to:', url.toString())
+  
   const response = await fetch(url.toString())
   
   if (!response.ok) {
+    const errorText = await response.text()
+    console.error('API Error Response:', errorText)
     throw new Error(`Weather API error: ${response.status} ${response.statusText}`)
   }
   
-  return response.json()
+  const data = await response.json()
+  console.log('API Success Response:', data)
+  return data
 } 
