@@ -7,12 +7,6 @@ import {
   getWeatherCondition, 
   getWeatherIcon
 } from '../services/weatherService'
-import { 
-  getAqiLevel, 
-  getAqiColor, 
-  getHealthAdvice
-} from '../config/weatherApi'
-import { generateDynamicPrecautions } from '../utils/precautions'
 
 const WeatherApp = () => {
   const { t, i18n } = useTranslation()
