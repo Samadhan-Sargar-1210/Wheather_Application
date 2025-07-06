@@ -36,17 +36,22 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: white;
+  overflow-x: hidden;
 }
 
 .container {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
   text-align: center;
   margin-bottom: 40px;
+  flex-shrink: 0;
 }
 
 .app-header h1 {
@@ -62,6 +67,7 @@
 
 .search-section {
   margin-bottom: 30px;
+  flex-shrink: 0;
 }
 
 .search-box {
@@ -119,10 +125,16 @@
   margin: 20px 0;
   text-align: center;
   backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
 
 .weather-display {
   margin-top: 30px;
+  flex: 1;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .weather-card {
@@ -133,6 +145,8 @@
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.2);
   box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 500px;
 }
 
 .weather-card h2 {
@@ -189,6 +203,12 @@
 .loading {
   text-align: center;
   margin: 40px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
 }
 
 .spinner {
@@ -211,6 +231,17 @@
   opacity: 0.9;
 }
 
+/* Prevent layout shifts */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .container {
@@ -231,6 +262,14 @@
   
   .temperature {
     font-size: 3rem;
+  }
+  
+  .weather-display {
+    min-height: 300px;
+  }
+  
+  .loading {
+    min-height: 300px;
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import './WeatherApp.css'
 
 const WeatherApp = () => {
@@ -7,12 +7,12 @@ const WeatherApp = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleCityChange = (e) => {
+  const handleCityChange = useCallback((e) => {
     setCity(e.target.value)
     if (error) setError('')
-  }
+  }, [error])
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!city.trim()) {
       setError('Please enter a city name')
       return
@@ -41,13 +41,13 @@ const WeatherApp = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [city])
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter') {
       handleSearch()
     }
-  }
+  }, [handleSearch])
 
   return (
     <div className="weather-app">
@@ -83,8 +83,8 @@ const WeatherApp = () => {
           </div>
         )}
 
-        {weatherData && (
-          <div className="weather-display">
+        <div className="weather-display">
+          {weatherData && (
             <div className="weather-card">
               <h2>{weatherData.city}</h2>
               <div className="weather-main">
@@ -107,15 +107,15 @@ const WeatherApp = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {loading && (
-          <div className="loading">
-            <div className="spinner"></div>
-            <p>Loading weather data...</p>
-          </div>
-        )}
+          {loading && (
+            <div className="loading">
+              <div className="spinner"></div>
+              <p>Loading weather data...</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
