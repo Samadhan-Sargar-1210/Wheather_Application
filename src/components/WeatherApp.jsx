@@ -2,15 +2,14 @@ import React, { useState, useCallback, useEffect } from 'react'
 import './WeatherApp.css'
 import { useTranslation } from 'react-i18next'
 import { 
-  WEATHER_API_CONFIG, 
-  API_ENDPOINTS, 
+  getCurrentWeather, 
+  fetchForecastData, 
   getWeatherCondition, 
   getWeatherIcon, 
   getAqiLevel, 
   getAqiColor, 
-  getHealthAdvice,
-  makeWeatherApiRequest 
-} from '../config/weatherApi'
+  getHealthAdvice
+} from '../services/weatherService'
 import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
 
 const WeatherApp = () => {
@@ -165,51 +164,19 @@ const WeatherApp = () => {
 
       console.log('API Parameters:', params)
       
-      // Get weather data using Tomorrow.io API
-      const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, {
-        ...params,
-        fields: 'temperature,temperatureApparent,humidity,windSpeed,pressureSeaLevel,visibility,uvIndex,weatherCode,cloudCover,precipitationProbability'
-      })
-      
-      console.log('Raw Tomorrow.io API Response:', data)
-      
-      // Validate the response data
-      if (!data.data || !data.data.values) {
-        throw new Error('Invalid weather data received from Tomorrow.io API')
-      }
-      
-      const values = data.data.values
-      
-      // Transform Tomorrow.io API data to our format
-      const transformedWeatherData = {
-        city: cityName,
-        temperature: Math.round(values.temperature),
-        feelsLike: Math.round(values.temperatureApparent),
-        condition: getWeatherCondition(values.weatherCode),
-        humidity: Math.round(values.humidity),
-        windSpeed: Math.round(values.windSpeed * 3.6), // Convert m/s to km/h
-        pressure: Math.round(values.pressureSeaLevel),
-        visibility: Math.round(values.visibility), // Already in km
-        uvIndex: values.uvIndex,
-        sunrise: '06:30 AM', // Tomorrow.io doesn't provide sunrise/sunset in free tier
-        sunset: '06:45 PM',
-        description: getWeatherCondition(values.weatherCode),
-        icon: getWeatherIcon(getWeatherCondition(values.weatherCode)),
-        isDemo: false
-      }
-
-      console.log('Transformed weather data:', transformedWeatherData)
-      setWeatherData(transformedWeatherData)
+      // Get weather data using robust service function
+      const weather = await getCurrentWeather(cityName)
+      setWeatherData(weather)
 
       // Generate dynamic precautions based on weather data
-      const dynamicPrecautions = generateDynamicPrecautions(transformedWeatherData)
+      const dynamicPrecautions = generateDynamicPrecautions(weather)
       setWeatherPrecautions(dynamicPrecautions)
       console.log('Generated precautions:', dynamicPrecautions)
 
       // Fetch forecast data if coordinates are available
-      if (lat && lon) {
+      if (weather && weather.city && weather.lat && weather.lon) {
         try {
-          await fetchForecastData(lat, lon)
+          await fetchForecastData(weather.lat, weather.lon)
         } catch (forecastErr) {
           console.error('Forecast fetch failed:', forecastErr)
           // Don't fail the whole request if forecast fails
@@ -245,39 +212,6 @@ const WeatherApp = () => {
       setError(errorMessage)
     } finally {
       setLoading(false)
-    }
-  }, [])
-
-  const fetchForecastData = useCallback(async (lat, lon) => {
-    try {
-      const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { 
-        location: `${lat},${lon}`,
-        timesteps: '1d',
-        fields: 'temperature,weatherCode,humidity,windSpeed,precipitationProbability'
-      })
-
-      if (!data.data || !data.data.timelines || !data.data.timelines[0]) {
-        throw new Error('Invalid forecast data received')
-      }
-
-      // Process Tomorrow.io forecast data
-      const forecast = data.data.timelines[0].intervals
-        .slice(0, 7) // Get 7 days
-        .map(interval => ({
-          date: new Date(interval.startTime),
-          temp: Math.round(interval.values.temperature),
-          tempMin: Math.round(interval.values.temperature),
-          tempMax: Math.round(interval.values.temperature),
-          condition: getWeatherCondition(interval.values.weatherCode),
-          humidity: Math.round(interval.values.humidity),
-          windSpeed: Math.round(interval.values.windSpeed * 3.6), // Convert m/s to km/h
-          rainChance: Math.round(interval.values.precipitationProbability * 100),
-          icon: getWeatherIcon(getWeatherCondition(interval.values.weatherCode))
-        }))
-
-      setForecastData(forecast)
-    } catch (err) {
-      console.error('Forecast fetch error:', err)
     }
   }, [])
 
