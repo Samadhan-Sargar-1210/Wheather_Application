@@ -5,11 +5,13 @@ import {
   getCurrentWeather, 
   fetchForecastData, 
   getWeatherCondition, 
-  getWeatherIcon, 
+  getWeatherIcon
+} from '../services/weatherService'
+import { 
   getAqiLevel, 
   getAqiColor, 
   getHealthAdvice
-} from '../services/weatherService'
+} from '../config/weatherApi'
 import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
 
 const WeatherApp = () => {

@@ -1,174 +1,143 @@
-# 🌤️ Weather Pro - Professional Weather Application
+# BhoomiWeather 🌤️
 
-A premium, modern weather application built with React that provides real-time weather data, beautiful UI, and advanced features.
+A modern, responsive weather application built with React that provides real-time weather information with dynamic precautions and multi-language support.
 
 ## ✨ Features
 
-### 🌟 Premium UI/UX
-- **Glassmorphism Design** - Beautiful frosted glass effects with backdrop blur
-- **Dynamic Weather Backgrounds** - Backgrounds that change based on weather conditions
-- **Dark Mode Toggle** - Seamless theme switching with smooth animations
-- **Responsive Design** - Works perfectly on all devices (mobile, tablet, desktop)
-- **Smooth Animations** - Micro-interactions and transition effects
+- **Real-time Weather Data**: Get current weather conditions using the Tomorrow.io API
+- **7-Day Forecast**: Detailed weather predictions for the upcoming week
+- **Dynamic Precautions**: Personalized weather advice for different user groups
+- **Multi-language Support**: Available in English, Hindi, Marathi, and Tamil
+- **Location Services**: Use your current location or search for any city
+- **Modern UI**: Beautiful, responsive design with smooth animations
+- **Dark Mode**: Toggle between light and dark themes
+- **Air Quality Index**: Real-time air quality information
+- **Weather Alerts**: Important weather warnings and notifications
 
-### 🌍 Real Weather Data
-- **Live Temperature Data** - Real-time temperatures from weather stations worldwide
-- **Accurate Weather Conditions** - Current weather status (sunny, rainy, etc.)
-- **Humidity & Pressure** - Actual atmospheric data
-- **Wind Speed** - Real wind measurements in km/h
-- **Sunrise/Sunset Times** - Accurate daily sun times
-- **7-Day Forecast** - Extended weather predictions
-- **Location-Based Weather** - GPS coordinates support
+## 🎯 User Groups Supported
 
-### 🎯 Advanced Features
-- **Multi-language Support** - English, Hindi, Marathi, Tamil with flag icons
-- **Voice Assistant** - Text-to-speech weather announcements
-- **Real-time Clock** - Live time display in header
-- **Weather Alerts** - Real-time weather warnings with severity levels
-- **Air Quality Index** - Detailed AQI with health advice
-- **Weather Precautions** - Group-specific safety recommendations
-
-### 🔧 Technical Excellence
-- **Modern React** - Built with React 18 and modern hooks
-- **Real API Integration** - Uses OpenWeatherMap API for live data
-- **Performance Optimized** - Smooth 60fps animations
-- **Accessibility** - Full WCAG compliance with keyboard navigation
-- **SEO Ready** - Proper semantic HTML structure
+- **City Residents**: General weather advice for daily activities
+- **Farmers**: Agricultural and farming-specific recommendations
+- **Small Children**: Child-friendly weather precautions
+- **Animals & Livestock**: Pet and livestock care advice
+- **Commuters**: Travel and transportation recommendations
+- **Elderly**: Senior citizen-specific health and safety tips
+- **Athletes**: Sports and outdoor activity guidance
+- **Outdoor Workers**: Workplace safety recommendations
+- **Drivers**: Road safety and driving conditions
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (version 18 or higher)
-- npm or yarn
+
+- Node.js (version 16 or higher)
+- npm or yarn package manager
 
 ### Installation
 
-1. **Clone the repository**
+1. Clone the repository:
 ```bash
-git clone https://github.com/Samadhan-Sargar-1210/Wheather_Application.git
-cd Wheather_Application
+git clone https://github.com/yourusername/bhoomiweather.git
+cd bhoomiweather
 ```
 
-2. **Install dependencies**
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-3. **Start the development server**
+3. Create a `.env` file in the root directory and add your Tomorrow.io API key:
+```env
+VITE_TOMORROW_API_KEY=your_api_key_here
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 ```
 
-4. **Open your browser**
-Navigate to `http://localhost:5173`
+5. Open your browser and navigate to `http://localhost:5173`
 
-## 🌐 API Integration
+## 🛠️ Built With
 
-This app uses the **OpenWeatherMap API** for real weather data:
+- **React 18** - Frontend framework
+- **Vite** - Build tool and development server
+- **Tomorrow.io API** - Weather data provider
+- **React i18next** - Internationalization
+- **CSS3** - Styling with modern features
 
-- **Current Weather**: Real-time temperature, humidity, pressure, wind speed
-- **5-Day Forecast**: Extended weather predictions
-- **Geolocation Support**: GPS-based weather for current location
-- **Global Coverage**: Weather data for cities worldwide
+## 📱 Supported Languages
 
-The API key is already configured and ready to use!
-
-## 📱 Usage
-
-### Search for Weather
-1. Enter a city name in the search box
-2. Click "Search" or press Enter
-3. View real-time weather data
-
-### Use Your Location
-1. Click the location button (📍)
-2. Allow location access when prompted
-3. Get weather for your current location
-
-### Voice Assistant
-1. Search for any city
-2. Click the "🔊 Speak" button
-3. Listen to weather information
-
-### Dark Mode
-1. Click the theme toggle button (🌙/☀️)
-2. Enjoy the beautiful dark theme
+- 🇺🇸 English
+- 🇮🇳 Hindi (हिंदी)
+- 🇮🇳 Marathi (मराठी)
+- 🇮🇳 Tamil (தமிழ்)
 
 ## 🎨 UI Features
 
-### Dynamic Backgrounds
-- **Sunny**: Warm gradient with sun animations
-- **Rainy**: Cool blue gradients with rain effects
-- **Snowy**: Light blue gradients with snow animations
-- **Stormy**: Dark gradients with lightning effects
-- **Cloudy**: Gray gradients with cloud movements
-- **Foggy**: Misty gradients with fog drift effects
-
-### Glassmorphism Cards
-- Frosted glass effect with backdrop blur
-- Subtle borders and shadows
-- Hover animations and micro-interactions
-- Responsive grid layout
-
-### Premium Typography
-- Inter font family for modern look
-- Proper font weights and hierarchy
-- Responsive text sizing
-- Accessibility-friendly contrast ratios
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Glass Morphism**: Modern glass-like UI elements
+- **Smooth Animations**: Engaging user interactions
+- **Gradient Backgrounds**: Beautiful visual appeal
+- **Interactive Cards**: Hover effects and transitions
+- **Custom Scrollbars**: Enhanced user experience
 
 ## 🔧 Configuration
 
-### Environment Variables
-The app is pre-configured with a working API key. For production deployments, you can set:
+### API Configuration
 
-```bash
-VITE_OPENWEATHERMAP_API_KEY=your_api_key_here
+The app uses the Tomorrow.io API for weather data. You'll need to:
+
+1. Sign up at [Tomorrow.io](https://www.tomorrow.io/)
+2. Get your API key
+3. Add it to your `.env` file
+
+### Environment Variables
+
+```env
+VITE_TOMORROW_API_KEY=your_tomorrow_io_api_key
 ```
 
-### Customization
-- Modify weather conditions in `src/config/weatherApi.js`
-- Update styling in `src/components/WeatherApp.css`
-- Add new languages in the language selector
+## 📦 Build for Production
 
-## 📊 Data Sources
+```bash
+npm run build
+```
 
-- **Weather Data**: [OpenWeatherMap API](https://openweathermap.org/api)
-- **Icons**: Unicode weather emojis
-- **Fonts**: Google Fonts (Inter)
+The built files will be in the `dist` directory, ready for deployment.
 
-## 🚀 Deployment
+## 🌐 Deployment
 
-### Netlify
-1. Connect your GitHub repository
-2. Set build command: `npm run build`
-3. Set publish directory: `dist`
-4. Deploy!
+The app can be deployed to any static hosting service:
 
-### Vercel
-1. Import your GitHub repository
-2. Vercel will auto-detect the Vite configuration
-3. Deploy with one click!
+- **Netlify**: Drag and drop the `dist` folder
+- **Vercel**: Connect your GitHub repository
+- **GitHub Pages**: Use GitHub Actions for automatic deployment
+- **Firebase Hosting**: Use Firebase CLI
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- [OpenWeatherMap](https://openweathermap.org/) for providing the weather API
-- [React](https://reactjs.org/) for the amazing framework
+- [Tomorrow.io](https://www.tomorrow.io/) for providing weather data
+- [React](https://reactjs.org/) team for the amazing framework
 - [Vite](https://vitejs.dev/) for the fast build tool
+- [React i18next](https://react.i18next.com/) for internationalization
+
+## 📞 Support
+
+If you have any questions or need help, please open an issue on GitHub or contact the development team.
 
 ---
 
-**Built with ❤️ by Samadhan Sargar**
-
-**Happy Weather Tracking! 🌤️** 
+**BhoomiWeather** - Bringing weather information closer to you! 🌤️ 

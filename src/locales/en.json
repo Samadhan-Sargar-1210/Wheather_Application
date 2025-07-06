@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Weather App"
+    "title": "BhoomiWeather"
   },
   "search": {
     "placeholder": "Enter city name...",
@@ -36,8 +36,8 @@
     "geolocationNotSupported": "Your browser doesn't support geolocation. Please search for a city manually.",
     "locationFailed": "Failed to get your location. Please try again or search for a city manually."
   },
-  "appTitle": "Weather App",
-  "appSubtitle": "Get Real-Time Weather Information",
+  "appTitle": "BhoomiWeather",
+  "appSubtitle": "Real-time Weather Information",
   "getLocation": "Get My Location Weather",
   "error_city_not_found": "Sorry, we couldn't find weather data for \"{{city}}\". Please check the city name and try again.",
   "error_network": "Network error. Please check your internet connection and try again.",

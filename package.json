@@ -1,8 +1,12 @@
 {
-  "name": "weather-app",
+  "name": "bhoomiweather",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "BhoomiWeather - Real-time weather information with dynamic precautions and multi-language support",
+  "keywords": ["weather", "forecast", "temperature", "humidity", "wind", "precipitation", "bhoomiweather", "react", "vite"],
+  "author": "BhoomiWeather Team",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -30,7 +34,7 @@
     "@testing-library/user-event": "^14.5.1",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
     "babel-jest": "^29.7.0",
     "eslint": "^8.55.0",
     "eslint-plugin-react": "^7.33.2",
@@ -40,7 +44,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "terser": "^5.43.1",
-    "vite": "^4.4.9"
+    "vite": "^5.0.8"
   },
   "babel": {
     "presets": [
