@@ -11,7 +11,8 @@ import {
 import { 
   getAqiLevel, 
   getAqiColor, 
-  getHealthAdvice
+  getHealthAdvice,
+  makeWeatherApiRequest
 } from '../config/weatherApi'
 import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
 
@@ -319,8 +320,8 @@ const WeatherApp = () => {
       <div className="container">
         {/* Header */}
         <header className="header">
-          <h1 className="app-title">🌤️ BhoomiWeather</h1>
-          <p className="app-subtitle">Real-time Weather Information</p>
+          <h1 className="app-title">🌤️ {t('appTitle')}</h1>
+          <p className="app-subtitle">{t('appSubtitle')}</p>
           
           <div className="language-selector">
               <select 
