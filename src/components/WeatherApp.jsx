@@ -45,6 +45,50 @@ const WeatherApp = () => {
     setAqiData(null)
     setAlerts([])
 
+    // Check if API key is properly configured
+    if (!WEATHER_API_CONFIG.API_KEY || WEATHER_API_CONFIG.API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY') {
+      // Show demo data with clear indication
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate loading
+      
+      const demoWeatherData = {
+        city: cityName,
+        temperature: 22,
+        feelsLike: 24,
+        condition: 'Partly Cloudy',
+        humidity: 65,
+        windSpeed: 12,
+        pressure: 1013,
+        visibility: 10,
+        uvIndex: 5,
+        sunrise: '06:30 AM',
+        sunset: '06:45 PM',
+        description: 'Partly cloudy with scattered clouds',
+        icon: '⛅',
+        isDemo: true // Flag to indicate this is demo data
+      }
+      
+      setWeatherData(demoWeatherData)
+      
+      // Generate demo forecast
+      const demoForecastData = Array.from({ length: 7 }, (_, i) => ({
+        date: new Date(Date.now() + i * 24 * 60 * 60 * 1000),
+        temp: 22 + Math.floor(Math.random() * 8) - 4, // 18-26°C range
+        tempMin: 18 + Math.floor(Math.random() * 5),
+        tempMax: 25 + Math.floor(Math.random() * 5),
+        condition: ['Sunny', 'Partly Cloudy', 'Cloudy', 'Rainy'][Math.floor(Math.random() * 4)],
+        humidity: 60 + Math.floor(Math.random() * 20),
+        windSpeed: 8 + Math.floor(Math.random() * 10),
+        rainChance: Math.floor(Math.random() * 30),
+        uvIndex: 5
+      }))
+      
+      setForecastData(demoForecastData)
+      setAqiData(generateMockAQI())
+      setAlerts([])
+      setLoading(false)
+      return
+    }
+
     try {
       let params = {}
       if (lat && lon) {
@@ -77,7 +121,8 @@ const WeatherApp = () => {
           hour12: true 
         }),
         description: data.weather[0].description,
-        icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description))
+        icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description)),
+        isDemo: false
       }
 
       setWeatherData(transformedWeatherData)
@@ -393,11 +438,13 @@ const WeatherApp = () => {
 
         {/* API Key Notice */}
         {(!WEATHER_API_CONFIG.API_KEY || WEATHER_API_CONFIG.API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY') && (
-          <div className="error-message" role="alert">
+          <div className="error-message" role="alert" style={{ background: 'rgba(255, 193, 7, 0.1)', border: '1px solid rgba(255, 193, 7, 0.3)' }}>
             <span className="error-icon">🔑</span>
             <span className="error-text">
-              Please add your OpenWeatherMap API key to get real weather data. 
-              Get a free API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer">openweathermap.org</a>
+              <strong>Demo Mode:</strong> Showing sample weather data. 
+              <a href="https://openweathermap.org/api" target="_blank" rel="noopener noreferrer" style={{ color: '#007bff', textDecoration: 'underline', marginLeft: '8px' }}>
+                Get free API key for real data
+              </a>
             </span>
           </div>
         )}
@@ -420,6 +467,21 @@ const WeatherApp = () => {
                   <div className="weather-icon-large">
                     {getWeatherIcon(weatherData.condition)}
                   </div>
+                  {weatherData.isDemo && (
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: '10px', 
+                      right: '10px', 
+                      background: 'rgba(255, 193, 7, 0.9)', 
+                      color: '#000', 
+                      padding: '4px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '0.8rem', 
+                      fontWeight: 'bold' 
+                    }}>
+                      DEMO
+                    </div>
+                  )}
                 </div>
                 
                 <div className="weather-main">
