@@ -20,9 +20,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          i18n: ['i18next', 'react-i18next'],
-          charts: ['recharts'],
-          calendar: ['react-calendar']
+          i18n: ['i18next', 'react-i18next']
         }
       }
     },

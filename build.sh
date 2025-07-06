@@ -1,10 +1,16 @@
 #!/bin/bash
 
-# Clean up any existing node_modules and package-lock.json
-rm -rf node_modules package-lock.json
-
-# Install dependencies with legacy peer deps to avoid conflicts
-npm install --legacy-peer-deps
+# Clean install dependencies
+npm ci --legacy-peer-deps
 
 # Build the project
-npm run build 
+npm run build
+
+# Check if build was successful
+if [ $? -eq 0 ]; then
+    echo "Build completed successfully!"
+    exit 0
+else
+    echo "Build failed!"
+    exit 1
+fi 
