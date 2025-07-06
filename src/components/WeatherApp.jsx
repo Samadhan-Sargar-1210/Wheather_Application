@@ -449,7 +449,7 @@ const WeatherApp = () => {
                     value={city}
                     onChange={handleCityChange}
                     onKeyPress={handleKeyPress}
-                    placeholder={t('search.placeholder')}
+                    placeholder={t('weather.search.placeholder')}
                     className="city-input"
                     disabled={loading}
                   />
@@ -469,7 +469,7 @@ const WeatherApp = () => {
                   ) : (
                     <span className="button-content">
                       <span>🔍</span>
-                      <span>{t('search.button')}</span>
+                      <span>{t('weather.search.button')}</span>
                     </span>
                   )}
                 </button>
@@ -478,7 +478,7 @@ const WeatherApp = () => {
                   onClick={handleLocationWeather}
                   disabled={loading}
                   className="search-button secondary"
-                  title={t('location.button')}
+                  title={t('weather.location.button')}
                 >
                   📍
                 </button>
@@ -518,7 +518,7 @@ const WeatherApp = () => {
             {loading && (
               <div className="loading-container">
                 <div className="loading-spinner"></div>
-                <p className="loading-text">{t('loading.fetching')}</p>
+                <p className="loading-text">{t('weather.loading.text')}</p>
               </div>
             )}
 
@@ -731,7 +731,7 @@ const WeatherApp = () => {
               {/* Weather Precautions */}
               <div className="weather-card precautions-card">
                 <div className="card-header">
-                  <h3>💡 {t('precautions.title')}</h3>
+                  <h3>💡 {t('weather.precautions.title')}</h3>
                   <span className="temperature-display">{weatherData.temperature}°C</span>
                 </div>
                 

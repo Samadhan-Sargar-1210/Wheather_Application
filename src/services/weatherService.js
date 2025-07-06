@@ -65,59 +65,119 @@ export const getCoordinates = async (cityName) => {
   try {
     console.log('Getting coordinates for:', cityName)
     
-    // First try with the exact name
-    let data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
-      query: cityName,
-      limit: 5
-    })
-    
-    console.log('Geocoding response:', data)
-    
-    if (!data.results || data.results.length === 0) {
-      // If no results, try with country code for better matching
-      console.log('No results found, trying with country code...')
-      data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
-        query: `${cityName}, India`,
-        limit: 5
+    // Try direct weather API call first (works for most cities)
+    try {
+      const weatherData = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, {
+        location: cityName,
+        fields: 'temperature'
       })
-    }
-    
-    if (!data.results || data.results.length === 0) {
-      // Try with different country codes
-      const countries = ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'JP', 'CN']
-      for (const country of countries) {
-        try {
-          console.log(`Trying with country code: ${country}`)
-          data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
-            query: `${cityName}, ${country}`,
-            limit: 3
-          })
-          if (data.results && data.results.length > 0) {
-            console.log(`Found results with country ${country}:`, data)
-            break
-          }
-        } catch (err) {
-          console.log(`No results for ${country}`)
-          continue
+      
+      // If we get weather data, extract location info
+      if (weatherData.data && weatherData.data.location) {
+        const location = weatherData.data.location
+        console.log('Got location from weather API:', location)
+        return {
+          lat: location.lat,
+          lon: location.lng,
+          name: cityName,
+          country: location.country || 'Unknown',
+          state: location.state || '',
+          fullName: `${cityName}, ${location.country || 'Unknown'}`
         }
       }
+    } catch (weatherErr) {
+      console.log('Direct weather API failed, trying geocoding...')
     }
     
-    if (!data.results || data.results.length === 0) {
+    // Fallback: Try geocoding (may fail due to API limitations)
+    try {
+      let data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+        query: cityName,
+        limit: 5
+      })
+      
+      console.log('Geocoding response:', data)
+      
+      if (!data.results || data.results.length === 0) {
+        // If no results, try with country code for better matching
+        console.log('No results found, trying with country code...')
+        data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+          query: `${cityName}, India`,
+          limit: 5
+        })
+      }
+      
+      if (!data.results || data.results.length === 0) {
+        // Try with different country codes
+        const countries = ['US', 'UK', 'CA', 'AU', 'DE', 'FR', 'JP', 'CN']
+        for (const country of countries) {
+          try {
+            console.log(`Trying with country code: ${country}`)
+            data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+              query: `${cityName}, ${country}`,
+              limit: 3
+            })
+            if (data.results && data.results.length > 0) {
+              console.log(`Found results with country ${country}:`, data)
+              break
+            }
+          } catch (err) {
+            console.log(`No results for ${country}`)
+            continue
+          }
+        }
+      }
+      
+      if (!data.results || data.results.length === 0) {
+        throw new Error(`No coordinates found for "${cityName}". Try searching for a nearby larger city.`)
+      }
+      
+      // Return the best match (usually the first one)
+      const location = data.results[0]
+      console.log('Selected location:', location)
+      
+      return {
+        lat: location.location.lat,
+        lon: location.location.lng,
+        name: location.name,
+        country: location.country,
+        state: location.state,
+        fullName: location.name + (location.state ? `, ${location.state}` : '') + `, ${location.country}`
+      }
+    } catch (geocodingErr) {
+      console.log('Geocoding failed, using fallback coordinates for major cities')
+      
+      // Fallback coordinates for major cities
+      const majorCities = {
+        'mumbai': { lat: 19.0760, lon: 72.8777, country: 'India' },
+        'delhi': { lat: 28.7041, lon: 77.1025, country: 'India' },
+        'bangalore': { lat: 12.9716, lon: 77.5946, country: 'India' },
+        'chennai': { lat: 13.0827, lon: 80.2707, country: 'India' },
+        'kolkata': { lat: 22.5726, lon: 88.3639, country: 'India' },
+        'hyderabad': { lat: 17.3850, lon: 78.4867, country: 'India' },
+        'pune': { lat: 18.5204, lon: 73.8567, country: 'India' },
+        'ahmedabad': { lat: 23.0225, lon: 72.5714, country: 'India' },
+        'london': { lat: 51.5074, lon: -0.1278, country: 'UK' },
+        'new york': { lat: 40.7128, lon: -74.0060, country: 'US' },
+        'tokyo': { lat: 35.6762, lon: 139.6503, country: 'Japan' },
+        'paris': { lat: 48.8566, lon: 2.3522, country: 'France' },
+        'sydney': { lat: -33.8688, lon: 151.2093, country: 'Australia' }
+      }
+      
+      const cityKey = cityName.toLowerCase()
+      if (majorCities[cityKey]) {
+        const city = majorCities[cityKey]
+        return {
+          lat: city.lat,
+          lon: city.lon,
+          name: cityName,
+          country: city.country,
+          state: '',
+          fullName: `${cityName}, ${city.country}`
+        }
+      }
+      
       throw new Error(`No coordinates found for "${cityName}". Try searching for a nearby larger city.`)
-    }
-    
-    // Return the best match (usually the first one)
-    const location = data.results[0]
-    console.log('Selected location:', location)
-    
-    return {
-      lat: location.location.lat,
-      lon: location.location.lng,
-      name: location.name,
-      country: location.country,
-      state: location.state,
-      fullName: location.name + (location.state ? `, ${location.state}` : '') + `, ${location.country}`
     }
   } catch (error) {
     console.error('Geocoding failed:', error)
@@ -278,24 +338,47 @@ export const getCurrentWeather = async (city) => {
   try {
     console.log('Getting current weather for:', city)
     
-    // First try direct weather API call with coordinates
+    // Try direct weather API call first (works for most cities)
     let data
+    let coords = null
+    
     try {
-      // Get coordinates first
-      const coords = await getCoordinates(city)
-      console.log('Got coordinates:', coords)
-      
-      // Use coordinates to get weather
+      // Try direct weather API call
       data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { 
-        location: `${coords.lat},${coords.lon}`,
+        location: city,
         fields: 'temperature,temperatureApparent,humidity,windSpeed,pressureSeaLevel,visibility,uvIndex,weatherCode,cloudCover,precipitationProbability'
       })
       
-      // Update location name to the resolved location
-      data.location = coords.fullName || coords.name
+      console.log('Direct weather API response:', data)
+      
+      // Extract location info if available
+      if (data.data && data.data.location) {
+        coords = {
+          lat: data.data.location.lat,
+          lon: data.data.location.lng,
+          name: city,
+          country: data.data.location.country || 'Unknown',
+          state: data.data.location.state || '',
+          fullName: `${city}, ${data.data.location.country || 'Unknown'}`
+        }
+      }
     } catch (directError) {
-      console.log('Direct weather API failed:', directError)
-      throw directError
+      console.log('Direct weather API failed, trying with coordinates...')
+      
+      // Fallback: Get coordinates first, then weather
+      try {
+        coords = await getCoordinates(city)
+        console.log('Got coordinates:', coords)
+        
+        // Use coordinates to get weather
+        data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { 
+          location: `${coords.lat},${coords.lon}`,
+          fields: 'temperature,temperatureApparent,humidity,windSpeed,pressureSeaLevel,visibility,uvIndex,weatherCode,cloudCover,precipitationProbability'
+        })
+      } catch (coordError) {
+        console.log('Coordinate-based weather API failed:', coordError)
+        throw coordError
+      }
     }
     
     if (!data.data || !data.data.values) {
@@ -305,7 +388,7 @@ export const getCurrentWeather = async (city) => {
     const values = data.data.values
     
     return {
-      city: data.location || city,
+      city: coords ? coords.fullName : city,
       temperature: Math.round(values.temperature),
       feelsLike: Math.round(values.temperatureApparent),
       condition: getWeatherCondition(values.weatherCode),
@@ -318,7 +401,9 @@ export const getCurrentWeather = async (city) => {
       sunset: '06:45 PM',
       description: getWeatherCondition(values.weatherCode),
       icon: getWeatherIcon(getWeatherCondition(values.weatherCode)),
-      isDemo: false
+      isDemo: false,
+      lat: coords ? coords.lat : null,
+      lon: coords ? coords.lon : null
     }
   } catch (error) {
     console.error('getCurrentWeather failed:', error)
