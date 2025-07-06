@@ -1,4 +1,4 @@
-// Weather API Service for Tomorrow.io
+// Weather API Service for Tomorrow.io with caching
 import { WEATHER_API_CONFIG } from '../config/weatherApi.js'
 
 const API_ENDPOINTS = {
@@ -7,9 +7,27 @@ const API_ENDPOINTS = {
   GEOCODING: '/geocoding/v1/search'
 }
 
-// Enhanced API request function with better error handling
+// Cache for weather data (5 minutes)
+const weatherCache = new Map()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+// Cache for geocoding data (1 hour)
+const geocodingCache = new Map()
+const GEOCODING_CACHE_DURATION = 60 * 60 * 1000 // 1 hour
+
+// Enhanced API request function with caching and better error handling
 export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   try {
+    // Create cache key
+    const cacheKey = `${endpoint}?${new URLSearchParams(params).toString()}`
+    
+    // Check cache first
+    const cached = weatherCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log('Using cached weather data')
+      return cached.data
+    }
+
     // Add API key and units to all requests
     const queryParams = new URLSearchParams({
       apikey: WEATHER_API_CONFIG.API_KEY,
@@ -54,6 +72,12 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
       throw new Error('Invalid response format from API')
     }
     
+    // Cache the response
+    weatherCache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    })
+    
     return data
   } catch (error) {
     console.error('Tomorrow.io API Request failed:', error)
@@ -68,10 +92,17 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   }
 }
 
-// Enhanced geocoding function for Tomorrow.io
+// Enhanced geocoding function with caching
 export const getCoordinates = async (cityName) => {
   try {
     console.log('Getting coordinates for:', cityName)
+    
+    // Check cache first
+    const cached = geocodingCache.get(cityName.toLowerCase())
+    if (cached && Date.now() - cached.timestamp < GEOCODING_CACHE_DURATION) {
+      console.log('Using cached geocoding data')
+      return cached.data
+    }
     
     // Try direct weather API call first (works for most cities)
     try {
@@ -84,7 +115,7 @@ export const getCoordinates = async (cityName) => {
       if (weatherData.data && weatherData.data.location) {
         const location = weatherData.data.location
         console.log('Got location from weather API:', location)
-        return {
+        const result = {
           lat: location.lat,
           lon: location.lng,
           name: cityName,
@@ -92,6 +123,14 @@ export const getCoordinates = async (cityName) => {
           state: location.state || '',
           fullName: `${cityName}, ${location.country || 'Unknown'}`
         }
+        
+        // Cache the result
+        geocodingCache.set(cityName.toLowerCase(), {
+          data: result,
+          timestamp: Date.now()
+        })
+        
+        return result
       }
     } catch (weatherErr) {
       console.log('Direct weather API failed, trying geocoding...')
@@ -144,7 +183,7 @@ export const getCoordinates = async (cityName) => {
       const location = data.results[0]
       console.log('Selected location:', location)
       
-      return {
+      const result = {
         lat: location.location.lat,
         lon: location.location.lng,
         name: location.name,
@@ -152,6 +191,14 @@ export const getCoordinates = async (cityName) => {
         state: location.state,
         fullName: location.name + (location.state ? `, ${location.state}` : '') + `, ${location.country}`
       }
+      
+      // Cache the result
+      geocodingCache.set(cityName.toLowerCase(), {
+        data: result,
+        timestamp: Date.now()
+      })
+      
+      return result
     } catch (geocodingErr) {
       console.log('Geocoding failed, using fallback coordinates for major cities')
       
@@ -175,7 +222,7 @@ export const getCoordinates = async (cityName) => {
       const cityKey = cityName.toLowerCase()
       if (majorCities[cityKey]) {
         const city = majorCities[cityKey]
-        return {
+        const result = {
           lat: city.lat,
           lon: city.lon,
           name: cityName,
@@ -183,6 +230,14 @@ export const getCoordinates = async (cityName) => {
           state: '',
           fullName: `${cityName}, ${city.country}`
         }
+        
+        // Cache the result
+        geocodingCache.set(cityName.toLowerCase(), {
+          data: result,
+          timestamp: Date.now()
+        })
+        
+        return result
       }
       
       throw new Error(`No coordinates found for "${cityName}". Try searching for a nearby larger city.`)

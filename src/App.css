@@ -3,9 +3,13 @@
 
 /* App.css - Main application styles */
 .App {
-  width: 100%;
+  text-align: center;
   min-height: 100vh;
-  overflow-x: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateZ(0); /* Force hardware acceleration */
 }
 
 /* Global styles */
@@ -117,60 +121,44 @@ html {
   transition: all var(--transition-smooth);
 }
 
-/* Premium Loading Screen */
-.app-loading {
+/* Loading spinner styles */
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  position: relative;
-  overflow: hidden;
-}
-
-.app-loading::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
-  animation: float 8s ease-in-out infinite;
-}
-
-.loading-logo {
-  font-size: 4rem;
-  margin-bottom: 30px;
-  animation: logo-bounce 2s ease-in-out infinite;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
-  z-index: 2;
-  position: relative;
-}
-
-.loading-text {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  z-index: 2;
-  position: relative;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .loading-spinner {
-  width: 60px;
-  height: 60px;
+  text-align: center;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid white;
+  border-top: 4px solid #ffffff;
   border-radius: 50%;
-  animation: rotate 1s linear infinite;
-  z-index: 2;
-  position: relative;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner p {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin: 0;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
 /* Premium Error Screen */
@@ -283,15 +271,6 @@ html {
   }
   50% {
     transform: translateY(-20px);
-  }
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 

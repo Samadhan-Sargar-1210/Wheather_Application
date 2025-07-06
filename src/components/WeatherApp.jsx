@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import './WeatherApp.css'
 import { useTranslation } from 'react-i18next'
 import { 
@@ -15,6 +15,23 @@ import {
   makeWeatherApiRequest
 } from '../config/weatherApi'
 import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
+
+// Memoized nearby cities data
+const NEARBY_CITIES = {
+  'maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Aurangabad', 'Nashik', 'Kolhapur', 'Solapur'],
+  'karnataka': ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga'],
+  'tamil nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli', 'Vellore'],
+  'kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Palakkad'],
+  'andhra pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool'],
+  'telangana': ['Hyderabad', 'Warangal', 'Karimnagar', 'Nizamabad', 'Adilabad', 'Khammam'],
+  'gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar'],
+  'rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Bikaner', 'Ajmer'],
+  'madhya pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar'],
+  'uttar pradesh': ['Lucknow', 'Kanpur', 'Varanasi', 'Agra', 'Prayagraj', 'Ghaziabad']
+}
+
+// Common cities for quick access
+const COMMON_CITIES = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad']
 
 const WeatherApp = () => {
   const { t, i18n } = useTranslation()
@@ -39,76 +56,112 @@ const WeatherApp = () => {
   const [notifications, setNotifications] = useState(false)
   const [autoLocation, setAutoLocation] = useState(false)
 
-  // Common nearby cities for different regions
-  const nearbyCities = {
-    'maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Aurangabad', 'Nashik', 'Kolhapur', 'Solapur'],
-    'karnataka': ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga'],
-    'tamil nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli', 'Vellore'],
-    'kerala': ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Palakkad'],
-    'andhra pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool'],
-    'telangana': ['Hyderabad', 'Warangal', 'Karimnagar', 'Nizamabad', 'Adilabad', 'Khammam'],
-    'gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar'],
-    'rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Bikaner', 'Ajmer'],
-    'madhya pradesh': ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar'],
-    'uttar pradesh': ['Lucknow', 'Kanpur', 'Varanasi', 'Agra', 'Prayagraj', 'Ghaziabad']
-  }
+  // Refs for optimization
+  const debounceRef = useRef(null)
+  const autoRefreshRef = useRef(null)
+  const weatherCache = useRef(new Map())
 
-  // Get suggestions based on the search term
-  const getSuggestions = (searchTerm) => {
+  // Memoized suggestions function
+  const getSuggestions = useCallback((searchTerm) => {
     if (!searchTerm || searchTerm.length < 2) return []
     
     const term = searchTerm.toLowerCase()
     const suggestions = []
     
     // Check if it matches any state/region
-    for (const [region, cities] of Object.entries(nearbyCities)) {
+    for (const [region, cities] of Object.entries(NEARBY_CITIES)) {
       if (region.includes(term) || term.includes(region)) {
         suggestions.push(...cities.slice(0, 3))
+      }
     }
-  }
 
-    // Add some common large cities
-    const commonCities = ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata', 'Hyderabad', 'Pune', 'Ahmedabad']
-    commonCities.forEach(city => {
+    // Add common cities
+    COMMON_CITIES.forEach(city => {
       if (city.toLowerCase().includes(term) && !suggestions.includes(city)) {
         suggestions.push(city)
       }
     })
     
     return suggestions.slice(0, 5)
-  }
-
-  // Update time every minute
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
-    return () => clearInterval(timer)
   }, [])
 
-  // Auto-refresh effect
-  useEffect(() => {
-    let interval
-    if (autoRefresh && weatherData) {
-      interval = setInterval(() => {
-        console.log('Auto-refreshing weather data...')
-        fetchWeatherData(weatherData.city)
-      }, 300000) // 5 minutes
-    }
-    return () => {
-      if (interval) {
-        clearInterval(interval)
-      }
-    }
-  }, [autoRefresh, weatherData, fetchWeatherData])
-
+  // Debounced city change handler
   const handleCityChange = useCallback((e) => {
     const value = e.target.value
     setCity(value)
     if (error) setError('')
     
-    // Show suggestions as user types
-    const newSuggestions = getSuggestions(value)
-    setSuggestions(newSuggestions)
-  }, [error])
+    // Clear previous debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+    
+    // Debounce suggestions
+    debounceRef.current = setTimeout(() => {
+      const newSuggestions = getSuggestions(value)
+      setSuggestions(newSuggestions)
+    }, 300) // 300ms delay
+  }, [error, getSuggestions])
+
+  // Memoized background class
+  const backgroundClass = useMemo(() => {
+    if (!weatherData) return 'weather-bg-default'
+    
+    const condition = weatherData.condition.toLowerCase()
+    if (condition.includes('rain') || condition.includes('drizzle')) return 'weather-bg-rainy'
+    if (condition.includes('snow') || condition.includes('ice')) return 'weather-bg-snowy'
+    if (condition.includes('storm') || condition.includes('thunder')) return 'weather-bg-stormy'
+    if (condition.includes('cloud') || condition.includes('fog')) return 'weather-bg-cloudy'
+    if (condition.includes('clear') || condition.includes('sunny')) return 'weather-bg-sunny'
+    
+    return 'weather-bg-default'
+  }, [weatherData])
+
+  // Memoized precautions
+  const currentPrecautions = useMemo(() => {
+    if (!weatherData) return []
+    
+    const precautions = weatherPrecautions[selectedUserGroup] || []
+    return precautions.length > 0 ? precautions : [t('precautions.noAdvice')]
+  }, [weatherData, weatherPrecautions, selectedUserGroup, t])
+
+  // Optimized time update - only update every minute
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Optimized auto-refresh effect
+  useEffect(() => {
+    if (autoRefreshRef.current) {
+      clearInterval(autoRefreshRef.current)
+    }
+    
+    if (autoRefresh && weatherData) {
+      autoRefreshRef.current = setInterval(() => {
+        console.log('Auto-refreshing weather data...')
+        fetchWeatherData(weatherData.city)
+      }, 300000) // 5 minutes
+    }
+    
+    return () => {
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current)
+      }
+    }
+  }, [autoRefresh, weatherData])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current)
+      }
+    }
+  }, [])
 
   const handleSuggestionClick = (suggestion) => {
     setCity(suggestion)
@@ -285,20 +338,6 @@ const WeatherApp = () => {
     }]
   }
 
-  const getBackgroundClass = () => {
-    if (!weatherData) return 'weather-bg-default'
-    
-    const condition = weatherData.condition?.toLowerCase() || ''
-    
-    if (condition.includes('rain') || condition.includes('drizzle')) return 'weather-bg-rainy'
-    if (condition.includes('snow') || condition.includes('ice')) return 'weather-bg-snowy'
-    if (condition.includes('storm') || condition.includes('thunder')) return 'weather-bg-stormy'
-    if (condition.includes('cloud') || condition.includes('fog')) return 'weather-bg-cloudy'
-    if (condition.includes('clear') || condition.includes('sunny')) return 'weather-bg-sunny'
-    
-    return 'weather-bg-default'
-  }
-
   const toggleDarkMode = () => {
     setDarkMode(!darkMode)
     document.body.classList.toggle('dark-mode')
@@ -363,15 +402,8 @@ const WeatherApp = () => {
     })
   }
 
-  const getPrecautionsForCurrentGroup = () => {
-    if (!weatherData) return []
-    
-    const precautions = weatherPrecautions[selectedUserGroup] || []
-    return precautions.length > 0 ? precautions : [t('precautions.noAdvice')]
-  }
-
   return (
-    <div className={`weather-app ${getBackgroundClass()} ${darkMode ? 'dark-mode' : ''}`}>
+    <div className={`weather-app ${backgroundClass} ${darkMode ? 'dark-mode' : ''}`}>
       <div className="container">
         {/* Header */}
         <header className="header">
@@ -609,7 +641,7 @@ const WeatherApp = () => {
                 </div>
                 
                 <ul className="precautions-list">
-                  {getPrecautionsForCurrentGroup().map((precaution, index) => (
+                  {currentPrecautions.map((precaution, index) => (
                     <li key={index}>
                       <span className="precaution-icon">💡</span>
                       <span className="precaution-text">{precaution}</span>
