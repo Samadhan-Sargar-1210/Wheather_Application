@@ -6,13 +6,13 @@ import {
   fetchForecastData, 
   getWeatherCondition, 
   getWeatherIcon,
-  getCurrentLocation
+  getCurrentLocation,
+  makeWeatherApiRequest
 } from '../services/weatherService'
 import { 
   getAqiLevel, 
   getAqiColor, 
-  getHealthAdvice,
-  makeWeatherApiRequest
+  getHealthAdvice
 } from '../config/weatherApi'
 import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
 
@@ -398,18 +398,6 @@ const WeatherApp = () => {
   return (
     <div className={`weather-app ${backgroundClass} ${darkMode ? 'dark-mode' : ''}`}>
       <div className="container">
-        {/* Debug Test */}
-        <div style={{ 
-          background: 'red', 
-          color: 'white', 
-          padding: '10px', 
-          margin: '10px',
-          fontSize: '20px',
-          fontWeight: 'bold'
-        }}>
-          DEBUG: Component is rendering! Background: {backgroundClass}
-        </div>
-        
         {/* Header */}
         <header className="header">
           <h1 className="app-title">🌤️ {t('appTitle')}</h1>
