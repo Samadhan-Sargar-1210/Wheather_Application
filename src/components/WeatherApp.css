@@ -192,6 +192,10 @@ body {
   background-clip: text;
   margin-bottom: 10px;
   text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: #fff; /* Fallback color for browsers that don't support gradient text */
+  display: block;
+  position: relative;
+  z-index: 2;
 }
 
 .app-subtitle {
@@ -199,6 +203,8 @@ body {
   color: rgba(255,255,255,0.9);
   font-weight: 500;
   margin-bottom: 20px;
+  position: relative;
+  z-index: 2;
 }
 
 /* Search Section */

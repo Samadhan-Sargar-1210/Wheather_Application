@@ -1,10 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import WeatherApp from './components/WeatherApp.jsx'
+import App from './App.jsx'
+import './i18n.js'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <WeatherApp />
+    <App />
   </React.StrictMode>,
 ) 
