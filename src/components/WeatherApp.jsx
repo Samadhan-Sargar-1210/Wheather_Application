@@ -105,16 +105,16 @@ const WeatherApp = () => {
 
   // Memoized background class
   const backgroundClass = useMemo(() => {
-    if (!weatherData) return 'weather-bg-default'
+    if (!weatherData) return 'bg-default'
     
     const condition = weatherData.condition.toLowerCase()
-    if (condition.includes('rain') || condition.includes('drizzle')) return 'weather-bg-rainy'
-    if (condition.includes('snow') || condition.includes('ice')) return 'weather-bg-snowy'
-    if (condition.includes('storm') || condition.includes('thunder')) return 'weather-bg-stormy'
-    if (condition.includes('cloud') || condition.includes('fog')) return 'weather-bg-cloudy'
-    if (condition.includes('clear') || condition.includes('sunny')) return 'weather-bg-sunny'
+    if (condition.includes('rain') || condition.includes('drizzle')) return 'bg-rainy'
+    if (condition.includes('snow') || condition.includes('ice')) return 'bg-snowy'
+    if (condition.includes('storm') || condition.includes('thunder')) return 'bg-stormy'
+    if (condition.includes('cloud') || condition.includes('fog')) return 'bg-cloudy'
+    if (condition.includes('clear') || condition.includes('sunny')) return 'bg-sunny'
     
-    return 'weather-bg-default'
+    return 'bg-default'
   }, [weatherData])
 
   // Memoized precautions
@@ -149,7 +149,7 @@ const WeatherApp = () => {
         clearInterval(autoRefreshRef.current)
       }
     }
-  }, [autoRefresh, weatherData])
+  }, [autoRefresh, weatherData, fetchWeatherData])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -177,23 +177,15 @@ const WeatherApp = () => {
   }
 
   const fetchWeatherData = useCallback(async (cityName, lat = null, lon = null) => {
-      setLoading(true)
-      setError('')
-      setWeatherData(null)
-      setForecastData(null)
-      setAqiData(null)
+    setLoading(true)
+    setError('')
+    setWeatherData(null)
+    setForecastData(null)
+    setAqiData(null)
     setAlerts([])
 
     try {
-      let params = {}
-      if (lat && lon) {
-        params = { location: `${lat},${lon}` }
-        console.log('Fetching weather by coordinates:', lat, lon)
-      } else {
-        console.log('Fetching weather for city/village:', cityName)
-      }
-
-      console.log('API Parameters:', params)
+      console.log('Fetching weather for city/village:', cityName)
       
       // Get weather data using robust service function
       const weather = await getCurrentWeather(cityName)
@@ -205,9 +197,10 @@ const WeatherApp = () => {
       console.log('Generated precautions:', dynamicPrecautions)
 
       // Fetch forecast data if coordinates are available
-      if (weather && weather.city && weather.lat && weather.lon) {
+      if (weather && weather.lat && weather.lon) {
         try {
-          await fetchForecastData(weather.lat, weather.lon)
+          const forecast = await fetchForecastData(weather.lat, weather.lon)
+          setForecastData(forecast)
         } catch (forecastErr) {
           console.error('Forecast fetch failed:', forecastErr)
           // Don't fail the whole request if forecast fails
@@ -246,7 +239,7 @@ const WeatherApp = () => {
     }
   }, [])
 
-  const handleSearch = async (e) => {
+  const handleSearch = useCallback(async (e) => {
     e.preventDefault()
     if (!city.trim()) return
 
@@ -263,7 +256,7 @@ const WeatherApp = () => {
       console.error('Search failed:', error)
       setError(error.message)
     }
-  }
+  }, [city, fetchWeatherData])
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter') {
@@ -405,6 +398,18 @@ const WeatherApp = () => {
   return (
     <div className={`weather-app ${backgroundClass} ${darkMode ? 'dark-mode' : ''}`}>
       <div className="container">
+        {/* Debug Test */}
+        <div style={{ 
+          background: 'red', 
+          color: 'white', 
+          padding: '10px', 
+          margin: '10px',
+          fontSize: '20px',
+          fontWeight: 'bold'
+        }}>
+          DEBUG: Component is rendering! Background: {backgroundClass}
+        </div>
+        
         {/* Header */}
         <header className="header">
           <h1 className="app-title">🌤️ {t('appTitle')}</h1>
