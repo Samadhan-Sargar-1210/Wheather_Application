@@ -20,8 +20,16 @@ export const makeWeatherApiRequest = async (endpoint, params = {}) => {
     const url = `${WEATHER_API_CONFIG.BASE_URL}${endpoint}?${queryParams}`
     console.log('Making Tomorrow.io API request to:', url)
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      mode: 'cors'
+    })
     console.log('API Response status:', response.status)
+    console.log('API Response headers:', response.headers)
 
     if (!response.ok) {
       const errorText = await response.text()

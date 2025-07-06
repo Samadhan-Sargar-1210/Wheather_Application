@@ -99,52 +99,6 @@ const WeatherApp = () => {
     console.log('Language changed to:', language)
   }
 
-  // Test function to verify API is working
-  const testAPI = useCallback(async () => {
-    console.log('Testing Tomorrow.io API with different cities...')
-    console.log('API Key available:', !!WEATHER_API_CONFIG.API_KEY)
-    console.log('API Base URL:', WEATHER_API_CONFIG.API_BASE_URL)
-    
-    const cities = ['London', 'Mumbai', 'New York', 'Tokyo']
-    
-    for (const city of cities) {
-      try {
-        console.log(`Testing ${city}...`)
-        // Test with coordinates for major cities
-        let coords
-        switch(city) {
-          case 'London':
-            coords = { lat: 51.5074, lon: -0.1278 }
-            break
-          case 'Mumbai':
-            coords = { lat: 19.0760, lon: 72.8777 }
-            break
-          case 'New York':
-            coords = { lat: 40.7128, lon: -74.0060 }
-            break
-          case 'Tokyo':
-            coords = { lat: 35.6762, lon: 139.6503 }
-            break
-          default:
-            continue
-        }
-        
-        const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, {
-          location: `${coords.lat},${coords.lon}`,
-          fields: 'temperature,weatherCode'
-        })
-        console.log(`${city}: ${Math.round(data.data.values.temperature)}°C - ${getWeatherCondition(data.data.values.weatherCode)}`)
-      } catch (err) {
-        console.error(`Error fetching ${city}:`, err.message)
-      }
-    }
-  }, [])
-
-  // Call test on component mount
-  useEffect(() => {
-    testAPI()
-  }, [testAPI])
-
   const fetchWeatherData = useCallback(async (cityName, lat = null, lon = null) => {
     setLoading(true)
     setError('')
