@@ -1,0 +1,208 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`App Component Snapshot Tests matches snapshot 1`] = `
+<div>
+  <div
+    class="App"
+  >
+    <div
+      aria-label="weather.theme.selector"
+      class="theme-toggle"
+      data-testid="theme-toggle"
+      role="group"
+    >
+      <button
+        aria-label="weather.theme.light"
+        aria-pressed="true"
+        class="theme-button light active"
+      >
+        <span
+          class="theme-icon"
+        >
+          ☀️
+        </span>
+        <span
+          class="theme-label"
+        >
+          Light
+        </span>
+      </button>
+      <button
+        aria-label="weather.theme.dark"
+        aria-pressed="false"
+        class="theme-button dark "
+      >
+        <span
+          class="theme-icon"
+        >
+          🌙
+        </span>
+        <span
+          class="theme-label"
+        >
+          Dark
+        </span>
+      </button>
+      <button
+        aria-label="weather.theme.high-contrast"
+        aria-pressed="false"
+        class="theme-button high-contrast "
+      >
+        <span
+          class="theme-icon"
+        >
+          ♿
+        </span>
+        <span
+          class="theme-label"
+        >
+          High Contrast
+        </span>
+      </button>
+    </div>
+    <div
+      data-testid="weather-app"
+    >
+      Weather App Component
+    </div>
+  </div>
+</div>
+`;
+
+exports[`App Component Snapshot Tests matches snapshot with different languages: hindi-language 1`] = `
+<div>
+  <div
+    class="App"
+  >
+    <div
+      aria-label="weather.theme.selector"
+      class="theme-toggle"
+      data-testid="theme-toggle"
+      role="group"
+    >
+      <button
+        aria-label="weather.theme.light"
+        aria-pressed="true"
+        class="theme-button light active"
+      >
+        <span
+          class="theme-icon"
+        >
+          ☀️
+        </span>
+        <span
+          class="theme-label"
+        >
+          Light
+        </span>
+      </button>
+      <button
+        aria-label="weather.theme.dark"
+        aria-pressed="false"
+        class="theme-button dark "
+      >
+        <span
+          class="theme-icon"
+        >
+          🌙
+        </span>
+        <span
+          class="theme-label"
+        >
+          Dark
+        </span>
+      </button>
+      <button
+        aria-label="weather.theme.high-contrast"
+        aria-pressed="false"
+        class="theme-button high-contrast "
+      >
+        <span
+          class="theme-icon"
+        >
+          ♿
+        </span>
+        <span
+          class="theme-label"
+        >
+          High Contrast
+        </span>
+      </button>
+    </div>
+    <div
+      data-testid="weather-app"
+    >
+      Weather App Component
+    </div>
+  </div>
+</div>
+`;
+
+exports[`App Component Snapshot Tests matches snapshot with different themes: light-theme 1`] = `
+<div>
+  <div
+    class="App"
+  >
+    <div
+      aria-label="weather.theme.selector"
+      class="theme-toggle"
+      data-testid="theme-toggle"
+      role="group"
+    >
+      <button
+        aria-label="weather.theme.light"
+        aria-pressed="true"
+        class="theme-button light active"
+      >
+        <span
+          class="theme-icon"
+        >
+          ☀️
+        </span>
+        <span
+          class="theme-label"
+        >
+          Light
+        </span>
+      </button>
+      <button
+        aria-label="weather.theme.dark"
+        aria-pressed="false"
+        class="theme-button dark "
+      >
+        <span
+          class="theme-icon"
+        >
+          🌙
+        </span>
+        <span
+          class="theme-label"
+        >
+          Dark
+        </span>
+      </button>
+      <button
+        aria-label="weather.theme.high-contrast"
+        aria-pressed="false"
+        class="theme-button high-contrast "
+      >
+        <span
+          class="theme-icon"
+        >
+          ♿
+        </span>
+        <span
+          class="theme-label"
+        >
+          High Contrast
+        </span>
+      </button>
+    </div>
+    <div
+      data-testid="weather-app"
+    >
+      Weather App Component
+    </div>
+  </div>
+</div>
+`;

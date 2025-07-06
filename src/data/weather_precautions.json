@@ -1,0 +1,71 @@
+{
+  "rain": {
+    "city_residents": [
+      "Carry an umbrella today as moderate rain expected. Traffic delays possible.",
+      "Watch out for slippery sidewalks and puddles."
+    ],
+    "farmers": [
+      "Heavy rainfall predicted in next 48 hours. Consider crop protection measures.",
+      "Check drainage systems to prevent waterlogging."
+    ],
+    "animals_livestock": [
+      "Ensure shelters are dry and provide extra bedding for livestock."
+    ],
+    "commuters": [
+      "Allow extra travel time due to possible delays from wet roads."
+    ]
+  },
+  "sunny": {
+    "small_children": [
+      "High UV index today. Wear sunscreen and hats if going outdoors.",
+      "Stay hydrated and avoid direct sun during peak hours."
+    ],
+    "elderly": [
+      "Avoid outdoor activities during midday heat. Drink plenty of water."
+    ],
+    "athletes": [
+      "Wear light clothing and take frequent breaks when exercising outdoors."
+    ]
+  },
+  "cold": {
+    "animals_livestock": [
+      "Temperature drop tonight. Provide warm shelter and extra water for cattle."
+    ],
+    "elderly": [
+      "Keep warm and avoid going out in the early morning or late evening."
+    ],
+    "small_children": [
+      "Dress children in layers and cover extremities to prevent heat loss."
+    ]
+  },
+  "snow": {
+    "city_residents": [
+      "Snowfall expected. Drive carefully and clear walkways of snow and ice."
+    ],
+    "commuters": [
+      "Check for transit delays and allow extra travel time."
+    ],
+    "animals_livestock": [
+      "Provide extra feed and ensure water sources are not frozen."
+    ]
+  },
+  "storm": {
+    "city_residents": [
+      "Severe storm warning. Stay indoors and avoid unnecessary travel."
+    ],
+    "farmers": [
+      "Secure loose equipment and shelter animals."
+    ],
+    "small_children": [
+      "Stay indoors and keep emergency supplies handy."
+    ]
+  },
+  "fog": {
+    "commuters": [
+      "Low visibility due to fog. Use headlights and drive slowly."
+    ],
+    "city_residents": [
+      "Be cautious when walking or cycling in low visibility."
+    ]
+  }
+} 

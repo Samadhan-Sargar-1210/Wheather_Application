@@ -1,0 +1,96 @@
+{
+  "app": {
+    "title": "Weather App"
+  },
+  "search": {
+    "placeholder": "Enter city name...",
+    "button": "Search"
+  },
+  "location": {
+    "button": "Get My Location Weather"
+  },
+  "loading": {
+    "fetching": "Fetching weather data..."
+  },
+  "weather": {
+    "feelsLike": "Feels like {{temp}}°C",
+    "humidity": "Humidity",
+    "windSpeed": "Wind Speed",
+    "pressure": "Pressure"
+  },
+  "precautions": {
+    "title": "Precautions & Advice",
+    "noAdvice": "No specific advice for this group."
+  },
+  "welcome": {
+    "message": "Enter a city name or use your current location to get weather information"
+  },
+  "errors": {
+    "enterCity": "Please enter a city name",
+    "cityNotFound": "Sorry, we couldn't find weather data for \"{{city}}\". Please check the city name and try again.",
+    "networkError": "Network error. Please check your internet connection and try again.",
+    "general": "Something went wrong. Please try again later.",
+    "locationDenied": "Location access denied. Please enable location services in your browser settings.",
+    "locationUnavailable": "Unable to get your location. Please try again or search for a city manually.",
+    "locationTimeout": "Location request timed out. Please try again or search for a city manually.",
+    "geolocationNotSupported": "Geolocation is not supported by your browser. Please search for a city manually.",
+    "locationFailed": "Failed to get your location. Please try again or search for a city manually."
+  },
+  "aqi": {
+    "title": "Air Quality Index",
+    "loading": "Loading air quality data...",
+    "pollutants": "Pollutant Levels",
+    "healthAdvice": "Health Advice",
+    "good": "Air quality is good. Enjoy outdoor activities.",
+    "moderate": "Air quality is acceptable. Sensitive individuals should consider reducing prolonged outdoor exertion.",
+    "unhealthySensitive": "Sensitive groups should reduce prolonged outdoor exertion. Everyone else can continue normal activities.",
+    "unhealthy": "Everyone should reduce prolonged outdoor exertion. Sensitive groups should avoid outdoor activities.",
+    "veryUnhealthy": "Everyone should avoid prolonged outdoor exertion. Sensitive groups should remain indoors.",
+    "hazardous": "Everyone should avoid all outdoor activities. Stay indoors with windows closed."
+  },
+  "alerts": {
+    "severity": {
+      "minor": "Minor",
+      "moderate": "Moderate",
+      "severe": "Severe",
+      "extreme": "Extreme"
+    },
+    "area": "Area",
+    "validUntil": "Valid Until",
+    "issued": "Issued",
+    "expires": "Expires",
+    "safetyRecommendations": "Safety Recommendations"
+  },
+  "appSubtitle": "Get real-time weather information",
+  "getLocation": "Get My Location Weather",
+  "error_city_not_found": "Sorry, we couldn't find weather data for \"{{city}}\". Please check the city name and try again.",
+  "error_network": "Network error. Please check your internet connection and try again.",
+  "error_generic": "Something went wrong. Please try again later.",
+  "temperature": "Temperature",
+  "feels_like": "Feels like",
+  "humidity": "Humidity",
+  "wind_speed": "Wind Speed",
+  "pressure": "Pressure",
+  "visibility": "Visibility",
+  "country": "Country",
+  "forecast_title": "7-Day Forecast",
+  "select_user_group": "Select user group",
+  "city_residents": "City Residents",
+  "farmers": "Farmers",
+  "small_children": "Small Children",
+  "animals_livestock": "Animals & Livestock",
+  "commuters": "Commuters",
+  "elderly": "Elderly",
+  "athletes": "Athletes",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "voice": {
+    "speakButton": "Speak",
+    "stopButton": "Stop"
+  },
+  "theme": {
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "highContrast": "High Contrast Mode"
+  }
+} 
