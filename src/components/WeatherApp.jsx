@@ -34,6 +34,10 @@ const WeatherApp = () => {
   const [searchHistory, setSearchHistory] = useState([])
   const [suggestions, setSuggestions] = useState([])
   const [weatherPrecautions, setWeatherPrecautions] = useState({})
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [detailedView, setDetailedView] = useState(false)
+  const [notifications, setNotifications] = useState(false)
+  const [autoLocation, setAutoLocation] = useState(false)
 
   // Common nearby cities for different regions
   const nearbyCities = {
@@ -79,6 +83,22 @@ const WeatherApp = () => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    let interval
+    if (autoRefresh && weatherData) {
+      interval = setInterval(() => {
+        console.log('Auto-refreshing weather data...')
+        fetchWeatherData(weatherData.city)
+      }, 300000) // 5 minutes
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [autoRefresh, weatherData, fetchWeatherData])
 
   const handleCityChange = useCallback((e) => {
     const value = e.target.value
@@ -284,6 +304,41 @@ const WeatherApp = () => {
     document.body.classList.toggle('dark-mode')
   }
 
+  const toggleAutoRefresh = () => {
+    setAutoRefresh(!autoRefresh)
+    if (!autoRefresh && weatherData) {
+      // Start auto-refresh every 5 minutes
+      const interval = setInterval(() => {
+        if (weatherData) {
+          fetchWeatherData(weatherData.city)
+        }
+      }, 300000) // 5 minutes
+      return () => clearInterval(interval)
+    }
+  }
+
+  const toggleDetailedView = () => {
+    setDetailedView(!detailedView)
+  }
+
+  const toggleNotifications = () => {
+    setNotifications(!notifications)
+    if (!notifications && 'Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('Notification permission granted')
+        }
+      })
+    }
+  }
+
+  const toggleAutoLocation = () => {
+    setAutoLocation(!autoLocation)
+    if (!autoLocation) {
+      handleLocationWeather()
+    }
+  }
+
   const speakWeather = () => {
     if (!weatherData || speaking) return
     
@@ -322,6 +377,96 @@ const WeatherApp = () => {
         <header className="header">
           <h1 className="app-title">🌤️ {t('appTitle')}</h1>
           <p className="app-subtitle">{t('appSubtitle')}</p>
+          
+          {/* Toggle Features Panel */}
+          <div className="toggle-panel">
+            <div className="toggle-item">
+              <label className="toggle-label">
+                <span className="toggle-icon">🌙</span>
+                <span className="toggle-text">Dark Mode</span>
+                <input
+                  type="checkbox"
+                  checked={darkMode}
+                  onChange={toggleDarkMode}
+                  className="toggle-checkbox"
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div className="toggle-item">
+              <label className="toggle-label">
+                <span className="toggle-icon">🔄</span>
+                <span className="toggle-text">Auto Refresh</span>
+                <input
+                  type="checkbox"
+                  checked={autoRefresh}
+                  onChange={toggleAutoRefresh}
+                  className="toggle-checkbox"
+                  disabled={!weatherData}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div className="toggle-item">
+              <label className="toggle-label">
+                <span className="toggle-icon">📊</span>
+                <span className="toggle-text">Detailed View</span>
+                <input
+                  type="checkbox"
+                  checked={detailedView}
+                  onChange={toggleDetailedView}
+                  className="toggle-checkbox"
+                  disabled={!weatherData}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div className="toggle-item">
+              <label className="toggle-label">
+                <span className="toggle-icon">🔔</span>
+                <span className="toggle-text">Notifications</span>
+                <input
+                  type="checkbox"
+                  checked={notifications}
+                  onChange={toggleNotifications}
+                  className="toggle-checkbox"
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div className="toggle-item">
+              <label className="toggle-label">
+                <span className="toggle-icon">🔊</span>
+                <span className="toggle-text">Voice Reading</span>
+                <input
+                  type="checkbox"
+                  checked={speaking}
+                  onChange={() => weatherData && speakWeather()}
+                  className="toggle-checkbox"
+                  disabled={!weatherData}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div className="toggle-item">
+              <label className="toggle-label">
+                <span className="toggle-icon">📍</span>
+                <span className="toggle-text">Auto Location</span>
+                <input
+                  type="checkbox"
+                  checked={autoLocation}
+                  onChange={toggleAutoLocation}
+                  className="toggle-checkbox"
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
           
           <div className="language-selector">
               <select 
