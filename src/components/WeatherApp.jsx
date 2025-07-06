@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import './WeatherApp.css'
+import { useTranslation } from 'react-i18next'
 import { 
   WEATHER_API_CONFIG, 
   API_ENDPOINTS, 
@@ -13,6 +14,7 @@ import {
 import { generateDynamicPrecautions, getPrecautionsForGroup } from '../utils/precautions'
 
 const WeatherApp = () => {
+  const { t, i18n } = useTranslation()
   const [city, setCity] = useState('')
   const [weatherData, setWeatherData] = useState(null)
   const [forecastData, setForecastData] = useState(null)
@@ -90,6 +92,12 @@ const WeatherApp = () => {
     setSuggestions([])
     // Auto-search for the suggestion
     fetchWeatherData(suggestion)
+  }
+
+  const handleLanguageChange = (language) => {
+    setSelectedLanguage(language)
+    i18n.changeLanguage(language)
+    console.log('Language changed to:', language)
   }
 
   // Test function to verify API is working
@@ -477,7 +485,7 @@ const WeatherApp = () => {
               <select 
                 className="language-select"
                 value={selectedLanguage}
-                onChange={(e) => setSelectedLanguage(e.target.value)}
+                onChange={(e) => handleLanguageChange(e.target.value)}
               >
                 <option value="en">🇺🇸 English</option>
                 <option value="hi">🇮🇳 हिंदी</option>
@@ -507,10 +515,10 @@ const WeatherApp = () => {
                     value={city}
                     onChange={handleCityChange}
                     onKeyPress={handleKeyPress}
-                  placeholder="Enter city name..."
+                    placeholder={t('search.placeholder')}
                     className="city-input"
-                  disabled={loading}
-                />
+                    disabled={loading}
+                  />
                 </div>
               
               <div className="search-buttons">
@@ -527,7 +535,7 @@ const WeatherApp = () => {
                   ) : (
                     <span className="button-content">
                       <span>🔍</span>
-                      <span>Search</span>
+                      <span>{t('search.button')}</span>
                     </span>
                   )}
                 </button>
@@ -536,7 +544,7 @@ const WeatherApp = () => {
                   onClick={handleLocationWeather}
                   disabled={loading}
                   className="search-button secondary"
-                  title="Use my location"
+                  title={t('location.button')}
                 >
                   📍
                 </button>
@@ -575,8 +583,8 @@ const WeatherApp = () => {
         <main className="main-content">
             {loading && (
               <div className="loading-container">
-              <div className="loading-spinner"></div>
-              <p className="loading-text">Fetching weather data...</p>
+                <div className="loading-spinner"></div>
+                <p className="loading-text">{t('loading.fetching')}</p>
               </div>
             )}
 
@@ -789,28 +797,28 @@ const WeatherApp = () => {
               {/* Weather Precautions */}
               <div className="weather-card precautions-card">
                 <div className="card-header">
-                  <h3>💡 Weather Precautions</h3>
+                  <h3>💡 {t('precautions.title')}</h3>
                   <span className="temperature-display">{weatherData.temperature}°C</span>
                 </div>
                 
                 <div className="precautions-content">
                   <div className="user-group-selector">
-                    <label htmlFor="user-group">Select your group:</label>
+                    <label htmlFor="user-group">{t('select_user_group')}:</label>
                     <select 
                       id="user-group"
                       value={selectedUserGroup} 
                       onChange={(e) => setSelectedUserGroup(e.target.value)}
                       className="group-select"
                     >
-                      <option value="city_residents">🏙️ City Residents</option>
-                      <option value="small_children">👶 Small Children</option>
-                      <option value="elderly">👴 Elderly</option>
-                      <option value="farmers">👨‍🌾 Farmers</option>
-                      <option value="athletes">🏃 Athletes</option>
-                      <option value="commuters">🚗 Commuters</option>
-                      <option value="animals_livestock">🐾 Animals & Livestock</option>
-                      <option value="outdoor_workers">👷 Outdoor Workers</option>
-                      <option value="drivers">🚘 Drivers</option>
+                      <option value="city_residents">🏙️ {t('city_residents')}</option>
+                      <option value="small_children">👶 {t('small_children')}</option>
+                      <option value="elderly">👴 {t('elderly')}</option>
+                      <option value="farmers">👨‍🌾 {t('farmers')}</option>
+                      <option value="athletes">🏃 {t('athletes')}</option>
+                      <option value="commuters">🚗 {t('commuters')}</option>
+                      <option value="animals_livestock">🐾 {t('animals_livestock')}</option>
+                      <option value="outdoor_workers">👷 {t('outdoor_workers')}</option>
+                      <option value="drivers">🚘 {t('drivers')}</option>
                     </select>
                   </div>
                   
@@ -825,29 +833,29 @@ const WeatherApp = () => {
                     ) : (
                       <div className="no-precautions">
                         <span className="precaution-icon">✅</span>
-                        <span className="precaution-text">No specific precautions needed for current weather conditions.</span>
+                        <span className="precaution-text">{t('precautions.noAdvice')}</span>
                       </div>
                     )}
                   </div>
                   
                   {Object.keys(weatherPrecautions).length > 0 && (
                     <div className="precautions-summary">
-                      <h4>📊 Weather Summary</h4>
+                      <h4>📊 {t('weather_summary')}</h4>
                       <div className="summary-grid">
                         <div className="summary-item">
-                          <span className="summary-label">Temperature:</span>
+                          <span className="summary-label">{t('temperature')}:</span>
                           <span className="summary-value">{weatherData.temperature}°C</span>
                         </div>
                         <div className="summary-item">
-                          <span className="summary-label">Condition:</span>
+                          <span className="summary-label">{t('condition')}:</span>
                           <span className="summary-value">{weatherData.condition}</span>
                         </div>
                         <div className="summary-item">
-                          <span className="summary-label">Humidity:</span>
+                          <span className="summary-label">{t('humidity')}:</span>
                           <span className="summary-value">{weatherData.humidity}%</span>
                         </div>
                         <div className="summary-item">
-                          <span className="summary-label">Wind:</span>
+                          <span className="summary-label">{t('wind_speed')}:</span>
                           <span className="summary-value">{weatherData.windSpeed} km/h</span>
                         </div>
                       </div>
