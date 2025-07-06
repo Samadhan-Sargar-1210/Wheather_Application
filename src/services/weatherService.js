@@ -1,419 +1,246 @@
-// OpenWeatherMap API configuration
-const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+// Weather API Service
+import { API_KEY, API_BASE_URL } from '../config/weatherApi.js'
 
-if (!API_KEY) {
-  throw new Error('API key is required');
+const API_ENDPOINTS = {
+  CURRENT_WEATHER: '/weather',
+  FORECAST: '/forecast',
+  GEOCODING: '/geo/1.0/direct'
 }
 
-// AQI API configuration (using OpenWeatherMap's air pollution API)
-const AQI_BASE_URL = 'https://api.openweathermap.org/data/2.5'
-
-// Helper function to get AQI level and color
-const getAQILevel = (aqi) => {
-  if (aqi <= 50) return { level: 'Good', color: '#00E400', description: 'Air quality is satisfactory' }
-  if (aqi <= 100) return { level: 'Moderate', color: '#FFFF00', description: 'Air quality is acceptable' }
-  if (aqi <= 150) return { level: 'Unhealthy for Sensitive Groups', color: '#FF7E00', description: 'Some pollutants may affect sensitive individuals' }
-  if (aqi <= 200) return { level: 'Unhealthy', color: '#FF0000', description: 'Everyone may begin to experience health effects' }
-  if (aqi <= 300) return { level: 'Very Unhealthy', color: '#8F3F97', description: 'Health warnings of emergency conditions' }
-  return { level: 'Hazardous', color: '#7E0023', description: 'Health alert: everyone may experience more serious health effects' }
-}
-
-// Helper function to convert Kelvin to Celsius
-const kelvinToCelsius = (kelvin) => {
-  return kelvin - 273.15
-}
-
-// Helper function to format date
-const formatDate = (timestamp) => {
-  return new Date(timestamp * 1000).toISOString().split('T')[0]
-}
-
-// Mock data for development
-const mockWeatherData = {
-  name: 'Mumbai',
-  coord: { lat: 19.076, lon: 72.8777 },
-  main: {
-    temp: 30,
-    feels_like: 32,
-    humidity: 70,
-    pressure: 1013,
-  },
-  weather: [
-    {
-      main: 'Clear',
-      description: 'clear sky',
-      icon: '01d',
-    },
-  ],
-  wind: { speed: 5 },
-  visibility: 10000,
-  sys: { country: 'IN' },
-};
-
-const mockForecastData = [
-  {
-    dt: 1640995200,
-    main: {
-      temp: 25,
-      feels_like: 27,
-      humidity: 65,
-      pressure: 1013,
-    },
-    weather: [
-      {
-        main: 'Clear',
-        description: 'clear sky',
-        icon: '01d',
-      },
-    ],
-    wind: { speed: 3 },
-    pop: 0.1,
-  },
-  {
-    dt: 1641081600,
-    main: {
-      temp: 28,
-      feels_like: 30,
-      humidity: 70,
-      pressure: 1012,
-    },
-    weather: [
-      {
-        main: 'Clouds',
-        description: 'scattered clouds',
-        icon: '03d',
-      },
-    ],
-    wind: { speed: 4 },
-    pop: 0.3,
-  },
-];
-
-const mockAQIData = {
-  list: [
-    {
-      main: {
-        aqi: 2,
-      },
-      components: {
-        co: 200,
-        no2: 20,
-        o3: 30,
-        pm2_5: 15,
-        pm10: 25,
-        so2: 5,
-        nh3: 1,
-      },
-      dt: 1640995200,
-    },
-  ],
-};
-
-const mockAlerts = [
-  {
-    event: 'Heavy Rain',
-    description: 'Heavy rainfall expected',
-    severity: 'Moderate',
-    start: 1640995200,
-    end: 1641081600,
-    tags: ['rain', 'flood'],
-    safety_recommendations: [
-      'Avoid low-lying areas',
-      'Stay indoors during heavy rain',
-    ],
-  },
-];
-
-// Get current weather data by city name
-export const getCurrentWeather = async (city) => {
-  if (!city || !city.trim()) {
-    throw new Error('City name is required');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockWeatherData;
-  }
-
+// Enhanced API request function with better error handling
+export const makeWeatherApiRequest = async (endpoint, params = {}) => {
   try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`
-    );
+    // Add API key and units to all requests
+    const queryParams = new URLSearchParams({
+      appid: API_KEY,
+      units: 'metric',
+      ...params
+    })
+
+    const url = `${API_BASE_URL}${endpoint}?${queryParams}`
+    console.log('Making API request to:', url)
+
+    const response = await fetch(url)
+    console.log('API Response status:', response.status)
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('API Error Response:', errorText)
+      
       if (response.status === 404) {
-        throw new Error('City not found');
+        throw new Error('404: City not found')
       } else if (response.status === 401) {
-        throw new Error('Invalid API key');
+        throw new Error('401: Invalid API key')
       } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded');
+        throw new Error('429: Rate limit exceeded')
       } else {
-        throw new Error('Failed to fetch weather data');
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
       }
     }
 
-    const data = await response.json();
-    
-    return {
-      city: data.name,
-      temperature: kelvinToCelsius(data.main.temp),
-      feelsLike: kelvinToCelsius(data.main.feels_like),
-      description: data.weather[0].description,
-      humidity: data.main.humidity,
-      windSpeed: data.wind.speed,
-      pressure: data.main.pressure,
-      icon: data.weather[0].icon
-    }
-  } catch (error) {
-    if (error.message.includes('City not found') || error.message.includes('Invalid API key')) {
-      throw error;
-    }
-    throw new Error('Network error');
-  }
-}
-
-// Get current weather data by coordinates
-export const getCurrentWeatherByCoords = async (lat, lon) => {
-  if (typeof lat !== 'number' || typeof lon !== 'number') {
-    throw new Error('Invalid coordinates');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockWeatherData;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch weather data');
-    }
-
-    const data = await response.json();
-    
-    return {
-      city: data.name,
-      temperature: kelvinToCelsius(data.main.temp),
-      feelsLike: kelvinToCelsius(data.main.feels_like),
-      description: data.weather[0].description,
-      humidity: data.main.humidity,
-      windSpeed: data.wind.speed,
-      pressure: data.main.pressure,
-      icon: data.weather[0].icon
-    }
-  } catch (error) {
-    throw new Error('Failed to fetch weather data');
-  }
-}
-
-// Get 7-day forecast data by city name
-export const getWeatherForecast = async (city) => {
-  if (!city || !city.trim()) {
-    throw new Error('City name is required');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockForecastData;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch forecast data');
-    }
-
-    const data = await response.json();
-    
-    // Process forecast data to get daily forecasts
-    const dailyForecasts = []
-    const dailyData = {}
-    
-    data.list.forEach(item => {
-      const date = formatDate(item.dt)
-      
-      if (!dailyData[date]) {
-        dailyData[date] = {
-          date: date,
-          maxTemp: kelvinToCelsius(item.main.temp_max),
-          minTemp: kelvinToCelsius(item.main.temp_min),
-          description: item.weather[0].description,
-          icon: item.weather[0].icon
-        }
-      } else {
-        // Update max/min temperatures for the day
-        const currentMax = kelvinToCelsius(item.main.temp_max)
-        const currentMin = kelvinToCelsius(item.main.temp_min)
-        
-        if (currentMax > dailyData[date].maxTemp) {
-          dailyData[date].maxTemp = currentMax
-        }
-        if (currentMin < dailyData[date].minTemp) {
-          dailyData[date].minTemp = currentMin
-        }
-      }
-    })
-    
-    // Convert to array and take first 7 days
-    Object.values(dailyData).slice(0, 7).forEach(day => {
-      dailyForecasts.push(day)
-    })
-    
-    return dailyForecasts
-  } catch (error) {
-    throw new Error('Failed to fetch forecast data');
-  }
-}
-
-// Get 7-day forecast data by coordinates
-export const getWeatherForecastByCoords = async (lat, lon) => {
-  if (typeof lat !== 'number' || typeof lon !== 'number') {
-    throw new Error('Invalid coordinates');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockForecastData;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch forecast data');
-    }
-
-    const data = await response.json();
-    
-    // Process forecast data to get daily forecasts
-    const dailyForecasts = []
-    const dailyData = {}
-    
-    data.list.forEach(item => {
-      const date = formatDate(item.dt)
-      
-      if (!dailyData[date]) {
-        dailyData[date] = {
-          date: date,
-          maxTemp: kelvinToCelsius(item.main.temp_max),
-          minTemp: kelvinToCelsius(item.main.temp_min),
-          description: item.weather[0].description,
-          icon: item.weather[0].icon
-        }
-      } else {
-        // Update max/min temperatures for the day
-        const currentMax = kelvinToCelsius(item.main.temp_max)
-        const currentMin = kelvinToCelsius(item.main.temp_min)
-        
-        if (currentMax > dailyData[date].maxTemp) {
-          dailyData[date].maxTemp = currentMax
-        }
-        if (currentMin < dailyData[date].minTemp) {
-          dailyData[date].minTemp = currentMin
-        }
-      }
-    })
-    
-    // Convert to array and take first 7 days
-    Object.values(dailyData).slice(0, 7).forEach(day => {
-      dailyForecasts.push(day)
-    })
-    
-    return dailyForecasts
-  } catch (error) {
-    throw new Error('Failed to fetch forecast data');
-  }
-}
-
-// Get AQI data by city name
-export const getAQIByCity = async (city) => {
-  if (!city || !city.trim()) {
-    throw new Error('City name is required');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockAQIData;
-  }
-
-  try {
-    const response = await fetch(
-      `${AQI_BASE_URL}/air_pollution?q=${encodeURIComponent(city)}&appid=${API_KEY}`
-    );
-    
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('CITY_NOT_FOUND')
-      } else if (response.status === 401) {
-        throw new Error('API_KEY_INVALID')
-      } else {
-        throw new Error('API_ERROR')
-      }
-    }
-    
     const data = await response.json()
-    const aqi = data.list[0].main.aqi
-    const aqiInfo = getAQILevel(aqi)
+    console.log('API Response data:', data)
     
-    return {
-      aqi: aqi,
-      level: aqiInfo.level,
-      color: aqiInfo.color,
-      description: aqiInfo.description,
-      components: data.list[0].components
+    // Validate the response
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format from API')
     }
+    
+    return data
   } catch (error) {
+    console.error('API Request failed:', error)
+    
+    // If it's a network error, provide a helpful message
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Network error: Please check your internet connection')
+    }
+    
+    // Re-throw the error with context
     throw error
   }
 }
 
-// Get AQI data by coordinates
-export const getAQIByCoords = async (lat, lon) => {
-  if (typeof lat !== 'number' || typeof lon !== 'number') {
-    throw new Error('Invalid coordinates');
-  }
-
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    throw new Error('Coordinates out of range');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockAQIData;
-  }
-
+// Enhanced geocoding function
+export const getCoordinates = async (cityName) => {
   try {
-    const response = await fetch(
-      `${AQI_BASE_URL}/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`
-    );
+    console.log('Getting coordinates for:', cityName)
+    const data = await makeWeatherApiRequest(API_ENDPOINTS.GEOCODING, {
+      q: cityName,
+      limit: 1
+    })
     
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('API_KEY_INVALID')
-      } else {
-        throw new Error('API_ERROR')
-      }
+    console.log('Geocoding response:', data)
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error(`No coordinates found for "${cityName}"`)
     }
     
-    const data = await response.json()
-    const aqi = data.list[0].main.aqi
-    const aqiInfo = getAQILevel(aqi)
-    
+    const location = data[0]
     return {
-      aqi: aqi,
-      level: aqiInfo.level,
-      color: aqiInfo.color,
-      description: aqiInfo.description,
-      components: data.list[0].components
+      lat: location.lat,
+      lon: location.lon,
+      name: location.name,
+      country: location.country
     }
   } catch (error) {
+    console.error('Geocoding failed:', error)
     throw error
   }
 }
 
-// Get user's current location
+// Enhanced weather condition mapping
+export const getWeatherCondition = (main, description = '') => {
+  const conditions = {
+    'Clear': 'clear',
+    'Clouds': description.toLowerCase().includes('scattered') ? 'partly-cloudy' : 'cloudy',
+    'Rain': description.toLowerCase().includes('light') ? 'light-rain' : 'rain',
+    'Drizzle': 'light-rain',
+    'Thunderstorm': 'thunderstorm',
+    'Snow': 'snow',
+    'Mist': 'fog',
+    'Smoke': 'fog',
+    'Haze': 'fog',
+    'Dust': 'fog',
+    'Fog': 'fog',
+    'Sand': 'fog',
+    'Ash': 'fog',
+    'Squall': 'windy',
+    'Tornado': 'thunderstorm'
+  }
+  
+  return conditions[main] || 'clear'
+}
+
+// Enhanced weather icon mapping
+export const getWeatherIcon = (condition) => {
+  const icons = {
+    'clear': '☀️',
+    'partly-cloudy': '⛅',
+    'cloudy': '☁️',
+    'light-rain': '🌦️',
+    'rain': '🌧️',
+    'thunderstorm': '⛈️',
+    'snow': '❄️',
+    'fog': '🌫️',
+    'windy': '💨'
+  }
+  
+  return icons[condition] || '☀️'
+}
+
+// Enhanced forecast data fetching
+export const fetchForecastData = async (lat, lon) => {
+  try {
+    console.log('Fetching forecast for coordinates:', lat, lon)
+    const data = await makeWeatherApiRequest(API_ENDPOINTS.FORECAST, { lat, lon })
+    
+    if (!data.list || !Array.isArray(data.list)) {
+      throw new Error('Invalid forecast data received')
+    }
+    
+    // Process forecast data
+    const forecast = data.list
+      .filter((item, index) => index % 8 === 0) // Get one reading per day
+      .slice(0, 5) // Get 5 days
+      .map(item => ({
+        date: new Date(item.dt * 1000).toLocaleDateString('en-US', { 
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        }),
+        temp: Math.round(item.main.temp),
+        condition: getWeatherCondition(item.weather[0].main, item.weather[0].description),
+        icon: getWeatherIcon(getWeatherCondition(item.weather[0].main, item.weather[0].description)),
+        description: item.weather[0].description
+      }))
+    
+    console.log('Processed forecast data:', forecast)
+    return forecast
+  } catch (error) {
+    console.error('Forecast fetch failed:', error)
+    throw error
+  }
+}
+
+// Mock data generators for features not available in free API
+export const generateMockAQI = () => {
+  const aqiLevels = ['Good', 'Moderate', 'Unhealthy for Sensitive Groups', 'Unhealthy', 'Very Unhealthy', 'Hazardous']
+  const randomLevel = aqiLevels[Math.floor(Math.random() * 3)] // Mostly good to moderate
+  const aqiValue = randomLevel === 'Good' ? Math.floor(Math.random() * 50) + 1 : 
+                   randomLevel === 'Moderate' ? Math.floor(Math.random() * 50) + 51 : 
+                   Math.floor(Math.random() * 50) + 101
+  
+  return {
+    value: aqiValue,
+    level: randomLevel,
+    color: randomLevel === 'Good' ? '#00E400' : 
+           randomLevel === 'Moderate' ? '#FFFF00' : '#FF7E00'
+  }
+}
+
+export const generateMockAlerts = () => {
+  const possibleAlerts = [
+    'Heat Advisory',
+    'Air Quality Alert',
+    'Flood Watch',
+    'Severe Thunderstorm Watch',
+    'Winter Weather Advisory'
+  ]
+  
+  // 30% chance of having an alert
+  if (Math.random() > 0.7) {
+    const randomAlert = possibleAlerts[Math.floor(Math.random() * possibleAlerts.length)]
+    return [{
+      type: randomAlert,
+      severity: 'Moderate',
+      description: `Weather conditions may be hazardous. Please take necessary precautions.`
+    }]
+  }
+  
+  return []
+}
+
+// Main weather fetching function
+export const getCurrentWeather = async (city) => {
+  try {
+    console.log('Getting current weather for:', city)
+    const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
+    
+    if (!data || !data.main || !data.weather || !data.weather[0]) {
+      throw new Error('Invalid weather data received')
+    }
+    
+    return {
+      city: data.name,
+      temperature: Math.round(data.main.temp),
+      feelsLike: Math.round(data.main.feels_like),
+      condition: getWeatherCondition(data.weather[0].main, data.weather[0].description),
+      humidity: data.main.humidity,
+      windSpeed: Math.round((data.wind?.speed || 0) * 3.6), // Convert m/s to km/h
+      pressure: data.main.pressure,
+      visibility: Math.round((data.visibility || 10000) / 1000), // Convert m to km
+      uvIndex: 5, // OpenWeatherMap doesn't provide UV in free tier
+      sunrise: data.sys?.sunrise ? new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }) : '06:30 AM',
+      sunset: data.sys?.sunset ? new Date(data.sys.sunset * 1000).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }) : '06:45 PM',
+      description: data.weather[0].description,
+      icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description)),
+      isDemo: false
+    }
+  } catch (error) {
+    console.error('getCurrentWeather failed:', error)
+    throw error
+  }
+}
+
+// Get current location
 export const getCurrentLocation = () => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -429,19 +256,7 @@ export const getCurrentLocation = () => {
         })
       },
       (error) => {
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            reject(new Error('Location access denied. Please enable location services.'))
-            break
-          case error.POSITION_UNAVAILABLE:
-            reject(new Error('Location information is unavailable.'))
-            break
-          case error.TIMEOUT:
-            reject(new Error('Location request timed out.'))
-            break
-          default:
-            reject(new Error('An unknown error occurred while getting location.'))
-        }
+        reject(new Error(`Geolocation error: ${error.message}`))
       },
       {
         enableHighAccuracy: true,
@@ -450,226 +265,4 @@ export const getCurrentLocation = () => {
       }
     )
   })
-}
-
-// Mock data for development (when API key is not set)
-export const getMockCurrentWeather = async (city) => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  const weatherDescriptions = [
-    'Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain', 
-    'Heavy Rain', 'Thunderstorm', 'Snow', 'Foggy', 'Clear'
-  ]
-  
-  return {
-    city: city,
-    temperature: Math.floor(Math.random() * 30) + 10,
-    feelsLike: Math.floor(Math.random() * 30) + 8,
-    description: weatherDescriptions[Math.floor(Math.random() * weatherDescriptions.length)],
-    humidity: Math.floor(Math.random() * 40) + 40,
-    windSpeed: Math.floor(Math.random() * 20) + 5,
-    pressure: Math.floor(Math.random() * 50) + 1000,
-    icon: '01d'
-  }
-}
-
-export const getMockWeatherForecast = async (city) => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  const weatherDescriptions = [
-    'Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain', 
-    'Heavy Rain', 'Thunderstorm', 'Snow', 'Foggy', 'Clear'
-  ]
-  
-  const icons = ['01d', '02d', '03d', '04d', '09d', '10d', '11d', '13d', '50d']
-  
-  const forecast = []
-  const today = new Date()
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today)
-    date.setDate(date.getDate() + i)
-    
-    forecast.push({
-      date: date.toISOString().split('T')[0],
-      maxTemp: Math.floor(Math.random() * 25) + 15,
-      minTemp: Math.floor(Math.random() * 15) + 5,
-      description: weatherDescriptions[Math.floor(Math.random() * weatherDescriptions.length)],
-      icon: icons[Math.floor(Math.random() * icons.length)],
-      rainChance: Math.round(Math.random() * 100)
-    })
-  }
-  
-  return forecast
-}
-
-// Mock location-based weather (for development)
-export const getMockCurrentWeatherByCoords = async (lat, lon) => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  const weatherDescriptions = [
-    'Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain', 
-    'Heavy Rain', 'Thunderstorm', 'Snow', 'Foggy', 'Clear'
-  ]
-  
-  // Generate a city name based on coordinates for mock data
-  const cityNames = ['Your Location', 'Current Location', 'Nearby City', 'Local Area']
-  const randomCity = cityNames[Math.floor(Math.random() * cityNames.length)]
-  
-  return {
-    city: randomCity,
-    temperature: Math.floor(Math.random() * 30) + 10,
-    feelsLike: Math.floor(Math.random() * 30) + 8,
-    description: weatherDescriptions[Math.floor(Math.random() * weatherDescriptions.length)],
-    humidity: Math.floor(Math.random() * 40) + 40,
-    windSpeed: Math.floor(Math.random() * 20) + 5,
-    pressure: Math.floor(Math.random() * 50) + 1000,
-    icon: '01d',
-    rainChance: Math.round(Math.random() * 100)
-  }
-}
-
-export const getMockWeatherForecastByCoords = async (lat, lon) => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  
-  const weatherDescriptions = [
-    'Sunny', 'Partly Cloudy', 'Cloudy', 'Light Rain', 
-    'Heavy Rain', 'Thunderstorm', 'Snow', 'Foggy', 'Clear'
-  ]
-  
-  const icons = ['01d', '02d', '03d', '04d', '09d', '10d', '11d', '13d', '50d']
-  
-  const forecast = []
-  const today = new Date()
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today)
-    date.setDate(date.getDate() + i)
-    
-    forecast.push({
-      date: date.toISOString().split('T')[0],
-      maxTemp: Math.floor(Math.random() * 25) + 15,
-      minTemp: Math.floor(Math.random() * 15) + 5,
-      description: weatherDescriptions[Math.floor(Math.random() * weatherDescriptions.length)],
-      icon: icons[Math.floor(Math.random() * icons.length)],
-      rainChance: Math.round(Math.random() * 100)
-    })
-  }
-  
-  return forecast
-}
-
-// Mock AQI data for development
-export const getMockAQIByCity = async (city) => {
-  await new Promise(resolve => setTimeout(resolve, 800))
-  
-  // Generate random AQI values for different cities
-  const aqiValues = [25, 45, 75, 120, 180, 250, 320]
-  const randomAQI = aqiValues[Math.floor(Math.random() * aqiValues.length)]
-  const aqiInfo = getAQILevel(randomAQI)
-  
-  return {
-    aqi: randomAQI,
-    level: aqiInfo.level,
-    color: aqiInfo.color,
-    description: aqiInfo.description,
-    components: {
-      co: Math.random() * 2000 + 200,
-      no2: Math.random() * 50 + 10,
-      o3: Math.random() * 100 + 20,
-      pm2_5: Math.random() * 50 + 5,
-      pm10: Math.random() * 100 + 10,
-      so2: Math.random() * 20 + 2
-    }
-  }
-}
-
-export const getMockAQIByCoords = async (lat, lon) => {
-  await new Promise(resolve => setTimeout(resolve, 800))
-  
-  // Generate random AQI values
-  const aqiValues = [30, 55, 85, 140, 200, 280, 350]
-  const randomAQI = aqiValues[Math.floor(Math.random() * aqiValues.length)]
-  const aqiInfo = getAQILevel(randomAQI)
-  
-  return {
-    aqi: randomAQI,
-    level: aqiInfo.level,
-    color: aqiInfo.color,
-    description: aqiInfo.description,
-    components: {
-      co: Math.random() * 2000 + 200,
-      no2: Math.random() * 50 + 10,
-      o3: Math.random() * 100 + 20,
-      pm2_5: Math.random() * 50 + 5,
-      pm10: Math.random() * 100 + 10,
-      so2: Math.random() * 20 + 2
-    }
-  }
-}
-
-// When generating daily forecast, add rainChance (0-100%)
-function getMockForecast(city) {
-  const today = new Date()
-  const daily = Array.from({ length: 7 }).map((_, i) => {
-    const date = new Date(today)
-    date.setDate(today.getDate() + i)
-    return {
-      date: date.toISOString().slice(0, 10),
-      temp: Math.round(20 + Math.random() * 15),
-      icon: ['01d', '02d', '03d', '09d', '10d', '11d', '13d'][Math.floor(Math.random() * 7)],
-      description: ['Sunny', 'Partly Cloudy', 'Cloudy', 'Rain', 'Thunderstorm', 'Snow', 'Fog'][Math.floor(Math.random() * 7)],
-      rainChance: Math.round(Math.random() * 100)
-    }
-  })
-  return { daily }
-}
-
-export const getWeatherAlerts = async (city) => {
-  if (!city || !city.trim()) {
-    throw new Error('City name is required');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockAlerts;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/onecall?q=${encodeURIComponent(city)}&exclude=current,minutely,hourly,daily&appid=${API_KEY}`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch weather alerts');
-    }
-
-    const data = await response.json();
-    return data.alerts || [];
-  } catch (error) {
-    throw new Error('Failed to fetch weather alerts');
-  }
-}
-
-export const getWeatherByLocation = async (lat, lon) => {
-  if (typeof lat !== 'number' || typeof lon !== 'number') {
-    throw new Error('Invalid coordinates');
-  }
-
-  if (import.meta.env.DEV) {
-    return mockWeatherData;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch weather data');
-    }
-
-    return await response.json();
-  } catch (error) {
-    throw new Error('Failed to fetch weather data');
-  }
 } 

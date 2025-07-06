@@ -25,6 +25,7 @@ const WeatherApp = () => {
   const [locationData, setLocationData] = useState(null)
   const [speaking, setSpeaking] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState('en')
+  const [searchHistory, setSearchHistory] = useState([])
 
   // Update time every minute
   useEffect(() => {
@@ -40,15 +41,18 @@ const WeatherApp = () => {
   // Test function to verify API is working
   const testAPI = useCallback(async () => {
     console.log('Testing API with different cities...')
+    console.log('API Key available:', !!WEATHER_API_CONFIG.API_KEY)
+    console.log('API Base URL:', WEATHER_API_CONFIG.API_BASE_URL)
     
     const cities = ['London', 'Mumbai', 'New York', 'Tokyo']
     
     for (const city of cities) {
       try {
+        console.log(`Testing ${city}...`)
         const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, { q: city })
-        console.log(`${city}: ${Math.round(data.main.temp)}°C`)
+        console.log(`${city}: ${Math.round(data.main.temp)}°C - ${data.weather[0].description}`)
       } catch (err) {
-        console.error(`Error fetching ${city}:`, err)
+        console.error(`Error fetching ${city}:`, err.message)
       }
     }
   }, [])
@@ -70,35 +74,42 @@ const WeatherApp = () => {
       let params = {}
       if (lat && lon) {
         params = { lat, lon }
+        console.log('Fetching weather by coordinates:', lat, lon)
       } else {
         params = { q: cityName }
+        console.log('Fetching weather for city:', cityName)
       }
 
-      console.log('Fetching weather for:', cityName, 'with params:', params)
+      console.log('API Parameters:', params)
       const data = await makeWeatherApiRequest(API_ENDPOINTS.CURRENT_WEATHER, params)
-      console.log('API Response:', data)
+      console.log('Raw API Response:', data)
+      
+      // Validate the response data
+      if (!data || !data.main || !data.weather || !data.weather[0]) {
+        throw new Error('Invalid weather data received from API')
+      }
       
       // Transform API data to our format
       const transformedWeatherData = {
-        city: data.name,
+        city: data.name || cityName,
         temperature: Math.round(data.main.temp),
         feelsLike: Math.round(data.main.feels_like),
         condition: getWeatherCondition(data.weather[0].main, data.weather[0].description),
         humidity: data.main.humidity,
-        windSpeed: Math.round(data.wind.speed * 3.6), // Convert m/s to km/h
+        windSpeed: Math.round((data.wind?.speed || 0) * 3.6), // Convert m/s to km/h
         pressure: data.main.pressure,
-        visibility: Math.round(data.visibility / 1000), // Convert m to km
+        visibility: Math.round((data.visibility || 10000) / 1000), // Convert m to km
         uvIndex: 5, // OpenWeatherMap doesn't provide UV in free tier
-        sunrise: new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { 
+        sunrise: data.sys?.sunrise ? new Date(data.sys.sunrise * 1000).toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
           hour12: true 
-        }),
-        sunset: new Date(data.sys.sunset * 1000).toLocaleTimeString('en-US', { 
+        }) : '06:30 AM',
+        sunset: data.sys?.sunset ? new Date(data.sys.sunset * 1000).toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
           hour12: true 
-        }),
+        }) : '06:45 PM',
         description: data.weather[0].description,
         icon: getWeatherIcon(getWeatherCondition(data.weather[0].main, data.weather[0].description)),
         isDemo: false
@@ -107,18 +118,39 @@ const WeatherApp = () => {
       console.log('Transformed weather data:', transformedWeatherData)
       setWeatherData(transformedWeatherData)
 
-      // Fetch forecast data
-      await fetchForecastData(lat || data.coord.lat, lon || data.coord.lon)
+      // Fetch forecast data if coordinates are available
+      if (data.coord?.lat && data.coord?.lon) {
+        try {
+          await fetchForecastData(data.coord.lat, data.coord.lon)
+        } catch (forecastErr) {
+          console.error('Forecast fetch failed:', forecastErr)
+          // Don't fail the whole request if forecast fails
+        }
+      }
       
-      // Fetch AQI data (using mock data for now as OpenWeatherMap AQI requires paid plan)
+      // Generate AQI and alerts
       setAqiData(generateMockAQI())
-      
-      // Generate mock alerts
       setAlerts(generateMockAlerts())
 
     } catch (err) {
       console.error('Weather fetch error:', err)
-      setError(err.message || 'Failed to fetch weather data')
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to fetch weather data'
+      
+      if (err.message.includes('404')) {
+        errorMessage = `City "${cityName}" not found. Please check the spelling and try again.`
+      } else if (err.message.includes('401')) {
+        errorMessage = 'API key error. Please check the configuration.'
+      } else if (err.message.includes('429')) {
+        errorMessage = 'Too many requests. Please wait a moment and try again.'
+      } else if (err.message.includes('Invalid weather data')) {
+        errorMessage = 'Invalid data received from weather service.'
+      } else {
+        errorMessage = err.message || 'Failed to fetch weather data'
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -149,15 +181,24 @@ const WeatherApp = () => {
     }
   }, [])
 
-  const handleSearch = useCallback(async () => {
-    if (!city.trim()) {
-      setError('Please enter a city name')
-      return
-    }
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    if (!city.trim()) return
 
-    console.log('Searching for city:', city)
-    await fetchWeatherData(city.trim())
-  }, [city, fetchWeatherData])
+    const cityName = city.trim()
+    console.log('Searching for city:', cityName)
+    
+    try {
+      await fetchWeatherData(cityName)
+      setSearchHistory(prev => {
+        const newHistory = [cityName, ...prev.filter(c => c !== cityName)].slice(0, 5)
+        return newHistory
+      })
+    } catch (error) {
+      console.error('Search failed:', error)
+      setError(error.message)
+    }
+  }
 
   const handleKeyPress = useCallback((e) => {
     if (e.key === 'Enter') {
